@@ -1,0 +1,21 @@
+workflow:
+  name: genomic-linear
+
+stages:
+  - id: qc
+    type: quality_control
+
+  - id: preprocessing
+    type: preprocessing
+    depends_on:
+      - qc
+
+  - id: alignment
+    type: alignment
+    depends_on:
+      - preprocessing
+
+  - id: analysis
+    type: analysis
+    depends_on:
+      - alignment

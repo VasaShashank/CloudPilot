@@ -1,0 +1,18 @@
+workflow:
+  name: cyclic-invalid
+
+stages:
+  - id: stage_a
+    type: processing
+    depends_on:
+      - stage_c
+
+  - id: stage_b
+    type: processing
+    depends_on:
+      - stage_a
+
+  - id: stage_c
+    type: processing
+    depends_on:
+      - stage_b

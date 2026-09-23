@@ -1,11 +1,18 @@
 # CloudPilot — 5-Phase Implementation Plan
 ## Intelligent Predictive Resource Orchestration for Genomic Analysis Workflows on Kubernetes
 
-> **Current dataset setup:** The 1000 Genomes Phase 3 chromosome 22 genotype VCF and its index are already downloaded and stored locally under:
+> **Current dataset setup:** The 1000 Genomes Phase 3 chromosome 22 genotype VCF and its index are downloaded and stored locally under:
 >
-> `data/genome/raw/`
+> `data/genomic/raw/`
 >
-> Keep the `.vcf.gz` compressed. **Do not unzip it.** The `.tbi` index is kept beside it for fast regional extraction with `bcftools`/`tabix`.
+> The `.vcf.gz` is compressed (196 MB). **Do not unzip it.** The `.tbi` index is kept beside it for fast regional extraction with `bcftools`/`tabix`.
+>
+> **Status Summary:**
+> - **Phase 1 (Kubernetes Workflow Engine):** ✅ COMPLETED & VALIDATED (DAG execution, parallel branches, K8s Jobs).
+> - **Phase 2 (Genomic Workload Profiling & Monitoring):** ✅ COMPLETED & VALIDATED (9 VCF chunks, sample variation, containerized bcftools, 20-column schema, 94 clean ML records).
+> - **Phase 3 (Prediction & Intelligence):** 🔄 ACTIVE NEXT STEP (Baseline models, Random Forest, XGBoost, confidence scoring, distribution shift detection).
+> - **Phase 4 (Decision Engine & Intelligent Scheduling):** 📋 PLANNED (Dynamic K8s resource requests, SLA-aware scheduling, safe fallback).
+> - **Phase 5 (Dashboard, Integration & Evaluation):** 📋 PLANNED (FastAPI Web UI, visual DAG execution, 3-way quantitative evaluation).
 
 ---
 
@@ -34,13 +41,13 @@ The project is divided into **5 meaningful phases** rather than many small imple
 
 # 2. Five-Phase Overview
 
-| Phase | Name | Main Outcome |
-|---|---|---|
-| 1 | Kubernetes Workflow Engine | A complete DAG can execute on Kubernetes |
-| 2 | Genomic Workload Profiling & Monitoring | Real genomic workloads produce structured historical execution data |
-| 3 | Prediction & Intelligence | CloudPilot predicts runtime/resources and evaluates confidence/shift |
-| 4 | Decision Engine & Intelligent Scheduling | Predictions become Kubernetes resource/scheduling decisions |
-| 5 | Dashboard, Integration & Evaluation | Complete CloudPilot system is demonstrated and evaluated |
+| Phase | Name | Status | Main Outcome |
+|---|---|---|---|
+| 1 | Kubernetes Workflow Engine | ✅ Complete | Parallel DAG executes reliably as Kubernetes Jobs on kind cluster |
+| 2 | Genomic Workload Profiling & Monitoring | ✅ Complete | Real genomic workloads produce structured, varied 20-column execution dataset |
+| 3 | Prediction & Intelligence | 🔄 Active Next | CloudPilot predicts runtime/resources and evaluates confidence/shift using Phase 2 data |
+| 4 | Decision Engine & Intelligent Scheduling | 📋 Planned | Predictions and confidence become dynamic Kubernetes resource/scheduling decisions |
+| 5 | Dashboard, Integration & Evaluation | 📋 Planned | Complete CloudPilot system is visualized via Web UI and quantitatively evaluated |
 
 ---
 
@@ -51,143 +58,147 @@ The project is divided into **5 meaningful phases** rather than many small imple
 - Python 3.11+
 - FastAPI
 - Uvicorn
-- Pydantic
+- Pydantic v2
 - NetworkX
 - PyYAML
 - Kubernetes Python client
 - Docker
-- Kubernetes
-- kind
-- WSL2 + Ubuntu
-- Git/GitHub
+- Kubernetes (kind)
+- WSL2 + Ubuntu / Windows
+- Git / GitHub
 
 ## Data and genomic processing
 
-- VCF / VCF.GZ
+- VCF / VCF.GZ (bgzip compressed)
 - Tabix index (`.tbi`)
-- bcftools
-- tabix
+- bcftools 1.21+
+- tabix 1.21+
 - pandas
 - NumPy
 
 ## Monitoring
 
-- Kubernetes metrics
-- Prometheus
-- Prometheus Python client where required
+- Container cgroups / psutil telemetry
+- Kubernetes metrics API
+- Prometheus (optional / Phase 5 integration)
 
-## Machine Learning
+## Machine Learning (Phase 3)
 
 - scikit-learn
 - XGBoost
 - joblib
+- scipy (statistical distance / Mahalanobis)
 
-## Frontend / visualization
+## Frontend / visualization (Phase 5)
 
-- FastAPI backend
-- Lightweight web dashboard
-- Plotly/Chart.js or another simple visualization library if required
+- FastAPI backend + static UI
+- HTML5 / CSS3 / Vanilla JS
+- SVG / Cytoscape.js for DAG visualization
+- Chart.js / Plotly for telemetry dashboards
 
 ---
 
 # 4. Current Project Structure
 
-Use this structure as the project grows:
-
 ```text
 cloudpilot/
 │
 ├── backend/
-│   ├── main.py
-│   ├── config.py
+│   ├── main.py                    # FastAPI entrypoint + CLI runner
+│   ├── config.py                  # Cluster and engine constants
 │   │
 │   ├── workflow/
 │   │   ├── __init__.py
-│   │   ├── parser.py
-│   │   ├── validator.py
-│   │   └── dag.py
+│   │   ├── parser.py              # YAML workflow parsing
+│   │   ├── validator.py           # Dependency & cycle validation
+│   │   └── dag.py                 # NetworkX DAG graph operations
 │   │
-│   ├── kubernetes/
+│   ├── k8s/
 │   │   ├── __init__.py
-│   │   ├── client.py
-│   │   ├── job_builder.py
-│   │   └── job_manager.py
+│   │   ├── client.py              # Local kubeconfig + in-cluster fallback
+│   │   ├── job_builder.py         # K8s Job manifests (RFC 1123 compliant)
+│   │   └── job_manager.py         # Job lifecycle, logs, and deletion
 │   │
 │   ├── scheduler/
 │   │   ├── __init__.py
-│   │   └── dag_scheduler.py
+│   │   └── dag_scheduler.py       # DAG execution controller + telemetry hook
 │   │
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── workflow.py
+│   │   └── workflow.py            # Pydantic schemas (StageDefinition, etc.)
 │   │
 │   ├── profiling/
 │   │   ├── __init__.py
-│   │   ├── collector.py
-│   │   └── feature_builder.py
+│   │   ├── collector.py           # Container log telemetry parser
+│   │   └── feature_builder.py     # 20-column RFC schema builder & filter
 │   │
-│   ├── prediction/
+│   ├── prediction/                # Phase 3
 │   │   ├── __init__.py
-│   │   ├── baseline.py
-│   │   ├── runtime_model.py
-│   │   ├── resource_model.py
-│   │   ├── confidence.py
-│   │   └── drift.py
+│   │   ├── feature_pipeline.py    # Feature extraction & encoding
+│   │   ├── baseline.py            # Historical mean/median baselines
+│   │   ├── runtime_model.py       # Runtime regressors (RF + XGBoost)
+│   │   ├── resource_model.py      # CPU & Memory regressors
+│   │   ├── confidence.py          # Variance & uncertainty scoring
+│   │   └── drift.py               # Outlier & distribution shift detection
 │   │
-│   └── decision/
+│   └── decision/                  # Phase 4
 │       ├── __init__.py
-│       └── decision_engine.py
+│       └── decision_engine.py     # Resource sizing, SLA scheduler & fallback
 │
 ├── workloads/
-│   ├── Dockerfile
-│   └── simulate.py
+│   ├── Dockerfile                 # Alpine + bcftools + tabix + embedded chunks
+│   └── simulate.py                # Real bcftools operations + telemetry emitter
 │
 ├── workflows/
-│   ├── linear.yaml
-│   ├── parallel.yaml
-│   └── cyclic_invalid.yaml
+│   ├── linear.yaml                # Phase 1 linear pipeline
+│   ├── parallel.yaml              # Phase 1 parallel diamond pipeline
+│   ├── cyclic_invalid.yaml        # Validation test workflow
+│   └── genomic_pipeline.yaml      # Phase 2 live genomic pipeline
 │
 ├── data/
-│   └── genome/
-│       ├── raw/
-│       │   ├── ALL.chr22....genotypes.vcf.gz
-│       │   └── ALL.chr22....genotypes.vcf.gz.tbi
-│       │
-│       ├── chunks/
-│       │   ├── small/
-│       │   ├── medium/
-│       │   └── large/
-│       │
-│       └── processed/
+│   └── genomic/
+│       ├── raw/                   # Immutable raw chr22 VCF (196 MB) + .tbi
+│       ├── chunks/                # 9 VCF chunks (small, medium, large × 100s, 500s, full)
+│       │   ├── metadata.json      # Real measured dimensions & variant counts
+│       │   └── metadata.csv       # Tabular chunk metadata
+│       └── samples/               # Deterministic sample ID lists (100, 500)
 │
 ├── datasets/
-│   ├── execution_history.csv
-│   └── feature_schema.json
+│   ├── feature_schema.json        # Standardized 20-column RFC schema
+│   ├── execution_history.csv      # Raw historical record (367 rows)
+│   ├── genomic_execution_history.csv # Clean ML-ready dataset (94 rows)
+│   └── genomic_dataset_summary.md # Statistical summary & ranges
 │
-├── models/
-│   ├── runtime/
-│   ├── cpu/
-│   ├── memory/
-│   └── workers/
+├── models/                        # Phase 3 artifacts
+│   ├── runtime/                   # Serialized runtime predictors
+│   ├── cpu/                       # Serialized CPU predictors
+│   ├── memory/                    # Serialized memory predictors
+│   └── workers/                   # Serialized worker recommendations
 │
 ├── k8s/
-│   └── namespace.yaml
+│   └── namespace.yaml             # cloudpilot namespace
 │
 ├── tests/
-│   ├── __init__.py
-│   ├── test_parser.py
-│   ├── test_validator.py
-│   ├── test_dag.py
-│   ├── test_scheduler.py
-│   ├── test_profiling.py
-│   └── test_prediction.py
+│   ├── test_parser.py             # 11 tests
+│   ├── test_validator.py          # 8 tests
+│   ├── test_dag.py                # 10 tests
+│   ├── test_job_builder.py        # 2 tests
+│   ├── test_job_manager.py        # 4 tests
+│   ├── test_scheduler.py          # 3 tests
+│   ├── test_api.py                # 8 tests
+│   ├── test_profiling.py          # 5 tests
+│   └── test_prediction.py         # Phase 3 tests
 │
 ├── scripts/
-│   ├── setup_cluster.sh
-│   ├── setup_cluster.ps1
-│   ├── extract_genomic_chunks.py
-│   └── build_dataset.py
+│   ├── setup_cluster.sh           # Linux cluster setup
+│   ├── setup_cluster.ps1          # Windows cluster setup
+│   ├── extract_genomic_chunks.py  # VCF regional & sample subset extraction
+│   ├── build_dataset.py           # Workload execution matrix generator
+│   ├── migrate_execution_history.py # 20-column schema migration
+│   └── validate_execution_dataset.py # Quality, range & variation validator
 │
+├── docs/
+│   └── phase2.md                  # Phase 2 reproducibility & architecture
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -195,565 +206,40 @@ cloudpilot/
 
 ---
 
-# PHASE 1 — Kubernetes Workflow Engine
+# PHASE 1 — Kubernetes Workflow Engine (COMPLETED)
 
-## Objective
-
-Build the reliable execution foundation of CloudPilot.
-
-At the end of Phase 1:
-
-> A YAML workflow DAG can be submitted, validated, converted into Kubernetes Jobs, executed in the correct dependency order, monitored, and completed successfully on a local kind cluster.
-
-**No real genomic dataset is required for the core Phase 1 implementation.**
-
-Use a simulated workload container first.
+## Status: ✅ Verified & Operational
+- DAG parsing, dependency checking, cycle detection (NetworkX).
+- Kubernetes Job manifests generated with RFC 1123 compliant names.
+- Sequential and parallel execution validated on kind cluster.
+- All 51 automated unit/integration tests passing.
 
 ---
 
-## 1.1 Workflow Definition
-
-Create a YAML representation such as:
-
-```yaml
-workflow:
-  id: linear-demo
-
-stages:
-  - id: qc
-    type: qc
-    depends_on: []
-
-  - id: preprocessing
-    type: preprocessing
-    depends_on:
-      - qc
-
-  - id: alignment
-    type: alignment
-    depends_on:
-      - preprocessing
-
-  - id: analysis
-    type: analysis
-    depends_on:
-      - alignment
-```
-
-Also create a parallel workflow:
-
-```text
-QC
- ↓
-Preprocessing
- ├── Alignment
- └── Feature Extraction
-        ↓
-      Analysis
-```
-
-And an intentionally invalid cyclic workflow:
-
-```text
-A → B → C → A
-```
-
----
-
-## 1.2 Parser
-
-Implement:
-
-```text
-backend/workflow/parser.py
-```
-
-Responsibilities:
-
-- Read YAML.
-- Parse workflow ID.
-- Parse stage definitions.
-- Parse dependencies.
-- Convert YAML into typed Python objects.
-- Reject malformed workflow definitions.
-
-Main interface:
-
-```python
-parse_workflow(yaml_path_or_string)
-```
-
----
-
-## 1.3 Validator
-
-Implement:
-
-```text
-backend/workflow/validator.py
-```
-
-Validate:
-
-- workflow ID exists
-- stage IDs are unique
-- dependency references exist
-- at least one stage exists
-- no invalid dependency declarations
-- no cycles
-
-Invalid workflows must be rejected before Kubernetes Jobs are created.
-
----
-
-## 1.4 DAG Representation
-
-Implement:
-
-```text
-backend/workflow/dag.py
-```
-
-Create `WorkflowDAG`.
-
-Required operations:
-
-```python
-get_root_stages()
-get_runnable_stages(completed_set)
-get_downstream(stage_id)
-get_dependencies(stage_id)
-topological_order()
-get_parallel_groups()
-```
-
-The DAG should support:
-
-- linear workflows
-- branching workflows
-- parallel stages
-- converging dependencies
-- cycle detection
-
----
-
-## 1.5 Kubernetes Integration
-
-Implement:
-
-```text
-backend/kubernetes/client.py
-backend/kubernetes/job_builder.py
-backend/kubernetes/job_manager.py
-```
-
-Use:
-
-- `BatchV1Api`
-- `CoreV1Api`
-
-CloudPilot namespace:
-
-```text
-cloudpilot
-```
-
-Each workflow stage becomes a Kubernetes Job.
-
-Example naming:
-
-```text
-cloudpilot-{workflow_id}-{stage_id}
-```
-
-Use labels:
-
-```text
-cloudpilot/workflow=<workflow-id>
-cloudpilot/stage=<stage-id>
-app=cloudpilot
-```
-
----
-
-## 1.6 Simulated Workload
-
-Create:
-
-```text
-workloads/Dockerfile
-workloads/simulate.py
-```
-
-The simulator should:
-
-- receive `STAGE_NAME`
-- receive `STAGE_TYPE`
-- perform light computation
-- sleep for a configurable duration
-- print useful execution logs
-- exit successfully
-
-This lets Phase 1 test orchestration without requiring genomic processing.
-
----
-
-## 1.7 DAG Scheduler
-
-Implement:
-
-```text
-backend/scheduler/dag_scheduler.py
-```
-
-Responsibilities:
-
-1. Validate workflow.
-2. Build DAG.
-3. Find root stages.
-4. Submit runnable stages.
-5. Poll Job status.
-6. Detect completion.
-7. Unlock downstream stages.
-8. Run independent branches in parallel.
-9. Stop/fail appropriately if a required stage fails.
-10. Record workflow/stage state.
-
----
-
-## 1.8 State Models
-
-Create models such as:
-
-```text
-StageDefinition
-WorkflowDefinition
-
-StageState
-WorkflowState
-
-StageStatus
-WorkflowStatus
-```
-
-Example statuses:
-
-```text
-PENDING
-RUNNING
-SUCCEEDED
-FAILED
-SKIPPED
-```
-
----
-
-## 1.9 API
-
-FastAPI endpoints:
-
-```text
-POST /workflows
-GET  /workflows
-GET  /workflows/{id}
-POST /workflows/{id}/run
-GET  /workflows/{id}/stages/{stage_id}/logs
-```
-
----
-
-## 1.10 Phase 1 Verification
-
-Run:
-
-```bash
-pytest tests/ -v
-```
-
-Then:
-
-```bash
-kind create cluster --name cloudpilot
-docker build -t cloudpilot-workload:latest ./workloads/
-kind load docker-image cloudpilot-workload:latest
-kubectl apply -f k8s/namespace.yaml
-```
-
-Run the API:
-
-```bash
-python main.py serve
-```
-
-Run a workflow:
-
-```bash
-python main.py run workflows/linear.yaml
-```
-
-Verify:
-
-```bash
-kubectl get jobs -n cloudpilot
-kubectl get pods -n cloudpilot
-```
-
-Test all three:
-
-```text
-linear.yaml
-parallel.yaml
-cyclic_invalid.yaml
-```
-
-### Phase 1 completion criteria
-
-- Linear DAG executes successfully.
-- Parallel branches execute concurrently.
-- Downstream stages wait for dependencies.
-- Cyclic workflow is rejected.
-- Kubernetes Job failures are detected.
-- Logs can be retrieved.
-- Automated tests pass.
-
----
-
-# PHASE 2 — Genomic Workload Profiling & Monitoring
-
-## Objective
-
-Introduce the real genomic workload and create the historical execution dataset required for prediction.
-
-The 1000 Genomes Phase 3 chr22 dataset is already available locally.
-
-Current location:
-
-```text
-data/genome/raw/
-```
-
-Expected files:
-
-```text
-data/genome/raw/
-├── ALL.chr22....genotypes.vcf.gz
-└── ALL.chr22....genotypes.vcf.gz.tbi
-```
-
-## IMPORTANT
-
-**Do not unzip the `.vcf.gz` file.**
-
-The compressed VCF can be queried directly using its `.tbi` index.
-
-The original raw dataset should remain untouched.
-
----
-
-## 2.1 Genomic Chunk Generation
-
-Create:
-
-```text
-scripts/extract_genomic_chunks.py
-```
-
-Use:
-
-- `bcftools`
-- `tabix`
-
-Create controlled workload sizes.
-
-Initial example:
-
-```text
-Small:
-22:1000000-1100000
-100 kb
-
-Medium:
-22:1000000-2000000
-1 Mb
-
-Large:
-22:1000000-5000000
-4 Mb
-```
-
-The exact ranges can be adjusted after inspecting the number of variants.
-
-Store outputs under:
-
-```text
-data/genome/chunks/
-├── small/
-├── medium/
-└── large/
-```
-
-Each extracted VCF should also be indexed.
-
-Example:
-
-```bash
-bcftools view \
-  -r 22:1000000-2000000 \
-  data/genome/raw/ALL.chr22....vcf.gz \
-  -Oz \
-  -o data/genome/chunks/medium/chr22_1mb.vcf.gz
-
-tabix -p vcf data/genome/chunks/medium/chr22_1mb.vcf.gz
-```
-
----
-
-## 2.2 Do Not Treat Chunk Size as the Only Feature
-
-CloudPilot should eventually capture several workload characteristics:
-
-### Dataset characteristics
-
-- genomic region size
-- number of variants
-- number of samples
-- VCF compressed size
-- VCF uncompressed/processed size where measurable
-- population subset
-- chromosome/region
-- workload type
-
-### Workflow characteristics
-
-- stage type
-- dependency count
-- parallel branches
-- worker count
-- requested CPU
-- requested memory
-
----
-
-## 2.3 Genomic Workload Container
-
-Extend the workload image so that selected workflow stages can process actual VCF chunks.
-
-Example workload types:
-
-```text
-vcf_stats
-filtering
-variant_processing
-aggregation
-analysis
-```
-
-Start with lightweight operations.
-
-Do not build an unnecessarily complicated bioinformatics pipeline yet.
-
-The goal is to generate repeatable computational workloads that can be profiled.
-
----
-
-## 2.4 Workload Profiling
-
-Collect for every stage execution:
-
-```text
-workflow_id
-stage_id
-stage_type
-
-dataset_size
-region_size
-variant_count
-sample_count
-
-requested_cpu
-requested_memory
-worker_count
-
-start_time
-end_time
-runtime
-
-actual_cpu_usage
-actual_memory_usage
-
-success
-failure
-```
-
-Derived:
-
-```text
-CPU utilization
-Memory utilization
-Resource waste
-Runtime error
-Deadline compliance
-```
-
----
-
-## 2.5 Historical Execution Dataset
-
-Create:
-
-```text
-datasets/execution_history.csv
-```
-
-Each row should represent a stage execution.
-
-Example conceptual schema:
-
-```text
-workflow_id
-stage_id
-stage_type
-region_size
-variant_count
-sample_count
-dataset_size_mb
-requested_cpu
-requested_memory_mb
-worker_count
-runtime_seconds
-actual_cpu
-actual_memory_mb
-success
-timestamp
-```
-
-This becomes the training/evaluation dataset for Phase 3.
-
----
-
-## 2.6 Monitoring
-
-Integrate Kubernetes/Prometheus metrics after basic profiling works.
-
-Collect:
-
-- CPU usage
-- memory usage
-- Job start/end times
-- pod status
-- resource requests
-- resource limits
-
-Avoid adding Prometheus complexity before the basic execution/profile pipeline works.
-
-### Phase 2 completion criteria
-
-- Raw chr22 VCF remains compressed and indexed.
-- Small/medium/large genomic chunks can be generated.
-- Genomic workloads execute through CloudPilot.
-- Runtime and resource measurements are recorded.
-- Historical execution dataset is generated.
-- Monitoring data can be associated with individual workflow stages.
+# PHASE 2 — Genomic Workload Profiling & Monitoring (COMPLETED)
+
+## Status: ✅ Verified & Operational
+
+Phase 2 established real genomic processing and historical telemetry collection without hard-coded statistics.
+
+### Completed Accomplishments:
+1. **Raw Source**: Preserved compressed 1000 Genomes chr22 VCF (`data/genomic/raw/`, 196 MB) and index.
+2. **Chunk Generation**: Created `scripts/extract_genomic_chunks.py` producing 9 deterministic combinations:
+   - **3 Regions**: Small (100 kb / 1,170 variants), Medium (1 Mb / 17,985 variants), Large (4 Mb / 109,665 variants).
+   - **3 Sample Sets**: 100 samples, 500 samples, 2,504 samples.
+   - All indexed with `tabix -p vcf`.
+3. **Containerized Workload**: Built `cloudpilot-workload:latest` with Alpine Linux, `bcftools 1.21`, and `tabix 1.21`. Container executes real VCF filtering, variant counts, and summary statistics, emitting standardized JSON profiling logs (`[CloudPilot Profiling]`).
+4. **Standardized 20-Column Schema** (`datasets/feature_schema.json`):
+   ```text
+   workflow_id, stage_id, stage_type, workload_id, workload_source,
+   chromosome, region_start, region_end, region_size, variant_count,
+   sample_count, dataset_size_mb, requested_cpu, requested_memory_mb,
+   worker_count, runtime_seconds, actual_cpu, actual_memory_mb, success, timestamp
+   ```
+5. **Separation of History**:
+   - `datasets/execution_history.csv`: Complete raw audit trail (367 rows, including Phase 1 smoke tests and failure records).
+   - `datasets/genomic_execution_history.csv`: 100% clean ML-ready dataset (94 rows, zero missing values, 0 duplicates, 100% successes).
+6. **Verification Tooling**: `scripts/validate_execution_dataset.py` programmatically verifies multi-dimensional variation across region size, sample count, variant count, and runtime.
 
 ---
 
@@ -761,188 +247,156 @@ Avoid adding Prometheus complexity before the basic execution/profile pipeline w
 
 ## Objective
 
-Use the historical execution data to predict workload requirements before execution.
+Use the clean Phase 2 genomic execution dataset (`datasets/genomic_execution_history.csv`) to train machine learning models that predict workload requirements *before* execution.
 
-CloudPilot should predict:
+CloudPilot will predict:
 
 ```text
-runtime
-CPU requirement
-memory requirement
-worker count
+1. runtime_seconds (continuous regression)
+2. actual_cpu (continuous regression)
+3. actual_memory_mb (continuous regression)
+4. recommended worker_count (discrete optimization)
 ```
 
-It should also estimate:
+It will also calculate:
 
 ```text
-prediction confidence
-distribution shift
+5. prediction confidence (normalized uncertainty score in [0.0, 1.0])
+6. distribution shift status (NORMAL, WARNING, SHIFTED)
 ```
 
 ---
 
-## 3.1 Feature Engineering
+## 3.1 Feature Pipeline & Encoding
 
-Input features can include:
+Input features are extracted directly from the incoming stage definition and genomic metadata:
 
-```text
-dataset size
-region size
-variant count
-sample count
-stage type
-workflow position
-dependency count
-worker count
-historical runtime statistics
-```
+### Input Feature Vector ($X$):
+- **Genomic Characteristics**:
+  - `region_size` (integer: e.g. 100,000, 1,000,000, 4,000,000)
+  - `variant_count` (integer: e.g. 1,170 to 109,665)
+  - `sample_count` (integer: 100, 500, 2,504)
+  - `dataset_size_mb` (float: 0.030 to 19.84 MB)
+- **Workflow & Resource Characteristics**:
+  - `stage_type` (categorical: `vcf_stats`, `filtering`, `variant_processing`, `feature_extraction`, `analysis` — one-hot encoded)
+  - `worker_count` (integer: 1, 2, 4)
+  - `requested_cpu_cores` (float: 0.25, 0.5, 1.0, 2.0 derived from `requested_cpu`)
+  - `requested_memory_mb` (float: 256.0, 512.0, 1024.0, 2048.0)
 
 Create:
-
 ```text
 backend/prediction/
+├── __init__.py
+├── feature_pipeline.py     # Extracts and scales feature vectors
+├── baseline.py             # Historical Mean/Median baselines
+├── runtime_model.py        # Runtime prediction models
+├── resource_model.py       # CPU & Memory prediction models
+├── confidence.py           # Uncertainty & variance estimation
+└── drift.py                # Outlier & distribution shift detection
 ```
 
 ---
 
 ## 3.2 Baseline Models
 
-Start simple.
+Before deploying complex algorithms, evaluate simple baselines to prove ML value:
 
-Examples:
+1. **Global / Stage Mean Baseline**: Predicts the historical mean for the given `stage_type`.
+2. **Stage Median Baseline**: Predicts the historical median for the given `stage_type`.
+3. **Linear Regression / Ridge**: Standard regularized linear model.
 
-- historical mean
-- historical median
-- moving average
-- linear regression
-
-The baseline establishes whether machine learning actually improves prediction.
+The baseline establishes the error benchmark (MAE, RMSE) that ML models must beat.
 
 ---
 
 ## 3.3 Machine Learning Models
 
-Then evaluate:
+Train separate specialized regressors for each target:
 
-- Random Forest
-- Gradient Boosting
-- XGBoost
+1. **Random Forest Regressor** (`scikit-learn`):
+   - Handles non-linear feature interactions between `variant_count` and `sample_count`.
+   - Provides native tree variance for confidence scoring.
+   - Robust against overfitting on medium-sized datasets.
+2. **XGBoost Regressor** (`xgboost`):
+   - Gradient boosted decision trees for peak predictive accuracy on tabular data.
+   - Fast inference (<5ms per stage).
 
-Use separate models where appropriate for:
-
-```text
-runtime
-CPU
-memory
-workers
-```
-
-Do not assume XGBoost is automatically necessary. Compare it against simpler baselines.
+### Training Setup:
+- Dataset: `datasets/genomic_execution_history.csv` (94 rows).
+- Validation: 5-fold cross-validation or stratified train/test split (80/20).
+- Hyperparameter tuning: `GridSearchCV` / `RandomizedSearchCV` across tree depth, estimator count, and learning rate.
 
 ---
 
-## 3.4 Prediction Confidence
+## 3.4 Prediction Confidence Scoring
 
-The prediction system should produce:
+Predictions must not be treated as absolute truth; the decision engine requires an estimate of model certainty.
 
-```text
-prediction
-confidence
-```
+### Confidence Formulation:
+Using the ensemble variance across the $T$ individual trees in Random Forest:
+$$\bar{y}(x) = \frac{1}{T}\sum_{t=1}^{T} f_t(x), \quad \sigma^2(x) = \frac{1}{T}\sum_{t=1}^{T} (f_t(x) - \bar{y}(x))^2$$
 
-Example:
+The Coefficient of Variation ($\text{CV} = \frac{\sigma(x)}{\bar{y}(x)}$) measures relative disagreement. Confidence is mapped to $[0.0, 1.0]$:
+$$\text{Confidence}(x) = \frac{1}{1 + \gamma \cdot \text{CV}(x)}$$
+where $\gamma$ is a scaling factor tuned on validation residuals.
 
+Expected Prediction Output:
 ```json
 {
-  "predicted_runtime": 42.5,
-  "predicted_cpu": 1.8,
-  "predicted_memory_mb": 1450,
-  "confidence": 0.87
+  "stage_id": "variant_processing_chr22_medium_500s",
+  "predicted_runtime_seconds": 3.82,
+  "predicted_actual_cpu": 0.65,
+  "predicted_actual_memory_mb": 62.4,
+  "recommended_worker_count": 2,
+  "confidence": 0.91,
+  "distribution_shift": "NORMAL"
 }
 ```
-
-Confidence should be based on measurable model uncertainty/error behavior rather than a manually invented score.
 
 ---
 
 ## 3.5 Distribution Shift Detection
 
-Detect when the incoming workload differs materially from historical training data.
+Detect when incoming workflow stages deviate from the training domain (e.g. unknown chromosome, unseen variant count >150k, sample size >3,000, or anomalous region size).
 
-Potential inputs:
-
-```text
-dataset size
-variant count
-sample count
-region characteristics
-stage type
-resource profile
-```
-
-Start with simple statistical distance/outlier methods before implementing sophisticated drift detection.
-
-Example output:
-
-```text
-NORMAL
-WARNING
-SHIFTED
-```
-
-The label should represent a measurable rule/model output.
+### Multi-Tier Shift Architecture:
+1. **Domain Boundary Check**:
+   Flag if any input parameter exceeds historical bounds $[X_{min}, X_{max}]$ by more than a safety margin (e.g. `region_size > 5,000,000` bp).
+2. **Statistical Distance / Mahalanobis Distance**:
+   Calculate distance $D_M(x) = \sqrt{(x - \mu)^T \Sigma^{-1} (x - \mu)}$ from the multivariate centroid of the training data.
+3. **Shift Status Labels**:
+   - `NORMAL`: Feature vector is comfortably inside the training distribution ($D_M \le \tau_1$).
+   - `WARNING`: Feature vector is near the boundary or slightly extrapolated ($\tau_1 < D_M \le \tau_2$).
+   - `SHIFTED`: Feature vector is an unseen outlier or out-of-distribution ($D_M > \tau_2$).
 
 ---
 
-## 3.6 Model Evaluation
+## 3.6 Model Evaluation & Artifacts
 
-Track:
+### Evaluation Metrics:
+- **Runtime**: Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), Mean Absolute Percentage Error (MAPE).
+- **CPU & Memory**: MAE and peak residual error.
+- **Comparison Table**: Baseline Mean vs. Ridge vs. Random Forest vs. XGBoost.
 
-### Runtime
-
-- MAE
-- RMSE
-- MAPE where appropriate
-
-### Resource prediction
-
-- CPU prediction error
-- memory prediction error
-- worker prediction accuracy
-
-### Operational impact
-
-- resource waste
-- over-provisioning
-- under-provisioning
-- deadline/SLA compliance
-
----
-
-## 3.7 Model Artifacts
-
-Store trained models under:
-
+### Model Serialization:
+Save fitted models and preprocessors using `joblib`:
 ```text
 models/
-├── runtime/
-├── cpu/
-├── memory/
-└── workers/
+├── runtime/model.joblib
+├── cpu/model.joblib
+├── memory/model.joblib
+├── scaler.joblib
+└── shift_detector.joblib
 ```
 
-Use `joblib` or an appropriate model serialization method.
-
-### Phase 3 completion criteria
-
-- Historical dataset is usable for training.
-- Baseline predictions work.
-- ML predictions work.
-- Runtime/resource predictions are measurable.
-- Confidence is calculated.
-- Distribution shift can be detected.
-- Models are saved and reloadable.
-- Evaluation metrics are produced.
+### Phase 3 Acceptance Criteria:
+- [ ] Clean genomic dataset loaded directly from `datasets/genomic_execution_history.csv`.
+- [ ] Baseline models implemented and evaluated.
+- [ ] Random Forest and XGBoost models trained for runtime, CPU, and memory.
+- [ ] ML models demonstrate superior MAE/RMSE over baselines.
+- [ ] Prediction confidence calculated using ensemble variance.
+- [ ] Distribution shift detector flags in-distribution vs out-of-distribution workloads.
+- [ ] Models serialized and reloadable via automated unit tests (`tests/test_prediction.py`).
 
 ---
 
@@ -950,177 +404,87 @@ Use `joblib` or an appropriate model serialization method.
 
 ## Objective
 
-Turn predictions into actual Kubernetes resource and scheduling decisions.
-
-This is the core intelligence layer of CloudPilot.
-
----
-
-## 4.1 Decision Inputs
-
-The decision engine receives:
+Connect Phase 3 predictions to the Kubernetes scheduling loop. The Decision Engine translates predictions, confidence scores, and SLA constraints into dynamic Kubernetes resource requests, limits, and thread allocations.
 
 ```text
-workflow DAG
-stage information
-genomic workload characteristics
-
-predicted runtime
-predicted CPU
-predicted memory
-predicted worker count
-
-prediction confidence
-distribution shift
-
-deadline / SLA
-available Kubernetes resources
+Incoming Stage Definition (YAML)
+               │
+               ▼
+   Extract Workload Metadata
+  (region, variants, samples)
+               │
+               ▼
+    Phase 3 Prediction Engine
+  (runtime, CPU, RAM, confidence)
+               │
+               ▼
+   Distribution Shift Detection
+    (NORMAL, WARNING, SHIFTED)
+               │
+               ▼
+   CloudPilot Decision Engine
+ ├── Apply Safety Margins based on Confidence
+ ├── Evaluate Deadline / SLA Budget
+ └── Apply Conservative Fallback if SHIFTED
+               │
+               ▼
+ Dynamic Kubernetes Job Manifest
+  (cpu: requests/limits, mem: requests/limits, THREADS: env)
+               │
+               ▼
+ Kubernetes Cluster Execution (kind)
 ```
 
 ---
 
-## 4.2 Decision Output
+## 4.1 Decision Logic & Sizing Formulas
 
-Example:
+Instead of static allocations (`1000m` CPU, `512Mi` RAM), the decision engine dynamically computes:
 
-```json
-{
-  "cpu": "2",
-  "memory": "2Gi",
-  "workers": 2,
-  "parallelism": 2,
-  "confidence": 0.87,
-  "fallback": false
-}
-```
+### 1. High Confidence & Normal Distribution (`confidence >= 0.80`, `shift == NORMAL`):
+- Allocate tight, efficient resources with modest headroom (+25%):
+  $$\text{Request}_{\text{cpu}} = \lceil \text{Predicted}_{\text{cpu}} \times 1.25 \rceil$$
+  $$\text{Request}_{\text{mem}} = \lceil \text{Predicted}_{\text{mem}} \times 1.30 \rceil$$
+  $$\text{Limit}_{\text{mem}} = \lceil \text{Request}_{\text{mem}} \times 1.50 \rceil$$
 
----
+### 2. Moderate Confidence or Warning (`0.60 <= confidence < 0.80` or `shift == WARNING`):
+- Widen headroom to prevent OOMKills and throttling (+60% to +75%):
+  $$\text{Request}_{\text{cpu}} = \lceil \text{Predicted}_{\text{cpu}} \times 1.60 \rceil$$
+  $$\text{Request}_{\text{mem}} = \lceil \text{Predicted}_{\text{mem}} \times 1.75 \rceil$$
 
-## 4.3 Resource Allocation Logic
-
-Basic decision flow:
-
-```text
-New stage
-   ↓
-Extract workload features
-   ↓
-Generate predictions
-   ↓
-Check confidence
-   ↓
-Check distribution shift
-   ↓
-Check deadline/SLA
-   ↓
-Determine CPU/RAM/workers
-   ↓
-Submit Kubernetes workload
-```
+### 3. Safe Fallback (`confidence < 0.60` or `shift == SHIFTED`):
+- Bypass prediction and apply safe conservative profile:
+  - `cpu`: `"2000m"`
+  - `memory`: `"2Gi"`
+  - `THREADS`: `4`
+  - Record `fallback: true` in decision telemetry.
 
 ---
 
-## 4.4 Safe Fallback
+## 4.2 SLA & Deadline-Aware Scheduling
 
-If:
-
-```text
-confidence is low
-OR
-distribution shift is high
-OR
-prediction unavailable
-```
-
-CloudPilot should use a safe fallback strategy.
-
-Possible fallback:
-
-```text
-historical conservative allocation
-or
-configured default resource profile
-```
-
-The fallback should be explicitly recorded.
+Given workflow deadline $D_{total}$ and remaining deadline $D_{rem}$:
+1. Compute the critical path remaining runtime $T_{crit} = \sum_{\text{stages on critical path}} \text{Predicted}_{\text{runtime}}$.
+2. If $T_{crit} > 0.80 \times D_{rem}$ (deadline pressure):
+   - Proactively increase `worker_count` (e.g. from 1 to 2 or 4).
+   - Scale CPU allocation proportionally to enable parallel execution inside `bcftools`.
+3. If $T_{crit} \ll D_{rem}$ (relaxed deadline):
+   - Maintain worker count at 1 or 2 to minimize cluster core footprint.
 
 ---
 
-## 4.5 SLA-Aware Scheduling
+## 4.3 Kubernetes Integration
 
-The decision engine should consider:
+Update `backend/scheduler/dag_scheduler.py` and `backend/k8s/job_builder.py`:
+- Job builder accepts dynamic `StageDefinition(cpu=decision.cpu, memory=decision.memory, env={"THREADS": decision.workers})`.
+- Decision record logged to `datasets/execution_history.csv` to capture predicted vs actual efficiency.
 
-```text
-predicted runtime
-remaining workflow time
-deadline
-available resources
-parallelism
-```
-
-The objective is not simply:
-
-> "Use the least CPU."
-
-It should balance:
-
-```text
-deadline compliance
-resource efficiency
-prediction confidence
-```
-
----
-
-## 4.6 Dynamic Kubernetes Allocation
-
-Integrate decisions with the Kubernetes Job builder.
-
-Instead of always using fixed resources:
-
-```yaml
-resources:
-  requests:
-    cpu: "1"
-    memory: "1Gi"
-```
-
-CloudPilot should generate resource settings from the decision engine.
-
----
-
-## 4.7 Scheduling Scenarios
-
-Test:
-
-### Scenario A — Normal workload
-
-Prediction trusted.
-
-### Scenario B — Large workload
-
-Higher predicted resource requirements.
-
-### Scenario C — Distribution-shifted workload
-
-Prediction becomes less trusted and fallback activates.
-
-### Scenario D — Tight deadline
-
-Scheduler allocates resources/parallelism to meet the SLA where possible.
-
-### Scenario E — Resource-constrained cluster
-
-Scheduler must operate within available cluster capacity.
-
-### Phase 4 completion criteria
-
-- Predictions influence Kubernetes resources.
-- Confidence influences decisions.
-- Distribution shift influences decisions.
-- Fallback works.
-- SLA/deadline information affects scheduling.
-- Dynamic resource allocation can be demonstrated.
+### Phase 4 Acceptance Criteria:
+- [ ] Decision engine implemented under `backend/decision/decision_engine.py`.
+- [ ] Dynamic resource calculation applied to Kubernetes Job creation.
+- [ ] Safe fallback automatically triggers on low confidence or distribution shift.
+- [ ] SLA deadline constraint adjusts worker count and parallelism.
+- [ ] Zero OOMKills or container eviction failures across test suite.
 
 ---
 
@@ -1128,554 +492,109 @@ Scheduler must operate within available cluster capacity.
 
 ## Objective
 
-Combine all components into a demonstrable CloudPilot platform and quantitatively evaluate its benefits.
+Provide an intuitive web interface for workflow visualization and quantitatively evaluate CloudPilot against static Kubernetes allocation baselines.
 
 ---
 
-## 5.1 Dashboard
+## 5.1 CloudPilot Web Dashboard
 
-Provide:
+Implemented as a lightweight web interface served directly by FastAPI (`backend/main.py`):
 
-### Workflow submission
-
-- upload/select workflow YAML
-- submit workflow
-- select genomic workload
-
-### DAG view
-
-Show:
-
-```text
-QC → Preprocessing → Alignment → Analysis
-```
-
-including parallel branches.
-
-### Live execution
-
-Show:
-
-- pending
-- running
-- succeeded
-- failed
-
-### Prediction view
-
-Show:
-
-```text
-Predicted runtime
-Actual runtime
-
-Predicted CPU
-Actual CPU
-
-Predicted memory
-Actual memory
-```
-
-### Decision view
-
-Show:
-
-```text
-Predicted resources
-Selected resources
-Confidence
-Distribution shift
-Fallback
-SLA/deadline
-```
+1. **Workflow Submission View**:
+   - YAML workflow upload or template selector (`linear`, `parallel`, `genomic_pipeline`).
+   - Genomic workload selector (small, medium, large × sample cohorts).
+   - SLA deadline input field.
+2. **Interactive DAG Graph**:
+   - Visual dependency graph rendering nodes with state badges:
+     - `PENDING` (gray), `RUNNING` (blue animation), `COMPLETED` (green), `FAILED` (red).
+   - Hover cards showing predicted vs actual runtime, CPU, and memory.
+3. **Telemetry & Intelligence Panel**:
+   - Live metrics: Confidence score, Distribution Shift indicator (`NORMAL` / `SHIFTED`), Fallback trigger status.
+   - Resource savings counter: Estimated core-hours and MB-hours saved compared to static provisioning.
 
 ---
 
-## 5.2 End-to-End Flow
+## 5.2 Quantitative Evaluation Suite
 
-The final CloudPilot flow should be:
+Implement automated evaluation script `scripts/evaluate_platform.py` comparing three strategies across identical genomic workloads:
+
+| Strategy | Description | Allocation Policy |
+|---|---|---|
+| **Baseline 1: Static Allocation** | Industry standard fixed sizing | Fixed `1000m` CPU, `1Gi` RAM for every stage |
+| **Baseline 2: Unmanaged Kubernetes** | Default K8s burstable behavior | No requests/limits (competes for host resources) |
+| **Baseline 3: CloudPilot Platform** | Intelligent predictive orchestration | Predicted actuals + confidence safety margins + SLA control |
+
+### Evaluated Metrics:
+1. **CPU Waste Ratio**: $\frac{\sum (\text{Allocated}_{\text{cpu}} - \text{Actual}_{\text{cpu}})}{\sum \text{Allocated}_{\text{cpu}}}$. (Target: >30% reduction).
+2. **Memory Waste Ratio**: $\frac{\sum (\text{Allocated}_{\text{mem}} - \text{Actual}_{\text{mem}})}{\sum \text{Allocated}_{\text{mem}}}$. (Target: >35% reduction).
+3. **SLA Violations**: Number of workflow runs exceeding deadline. (Target: 0% breaches).
+4. **Prediction Accuracy**: Overall MAPE on runtime and memory.
+
+---
+
+# 6. Data Integrity & Git Safety Rules
+
+- Never unzip the raw chr22 VCF (`ALL.chr22....genotypes.vcf.gz`).
+- Always extract using indexed regional queries via `bcftools view -r ... -Oz` and `tabix -p vcf`.
+- Maintain `.gitignore` to prevent committing raw or chunk VCF binaries:
+  ```text
+  data/genomic/raw/
+  data/genomic/chunks/
+  data/genomic/processed/
+  *.vcf
+  *.vcf.gz
+  *.vcf.gz.tbi
+  *.tar
+  ```
+- All code, metadata schemas, CSV datasets, and summary reports must remain tracked in Git.
+
+---
+
+# 7. Implementation Roadmap & Current Status
 
 ```text
-User
-  ↓
-Dashboard
-  ↓
-Workflow YAML
-  ↓
-DAG Parser + Validator
-  ↓
-Workload Profiler
-  ↓
-Prediction Engine
-  ↓
-Confidence + Shift Detection
-  ↓
-Decision Engine
-  ↓
-Kubernetes Scheduler
-  ↓
-Kubernetes Jobs
-  ↓
-Prometheus / Execution Metrics
-  ↓
-Historical Dataset
-  ↓
-Future Model Training
-```
+PHASE 1: Kubernetes Workflow Engine        [ ✅ COMPLETED ]
+   ├── YAML parser & DAG validator
+   ├── Parallel branch scheduling
+   └── Kubernetes Job execution
 
-This creates the intended feedback loop:
+PHASE 2: Genomic Workload Profiling         [ ✅ COMPLETED ]
+   ├── 9 VCF chunks (regions × samples)
+   ├── Containerized bcftools workloads
+   ├── 20-column standardized schema
+   ├── execution_history.csv (367 rows)
+   └── genomic_execution_history.csv (94 rows)
 
-```text
-Execution
-   ↓
-Monitoring
-   ↓
-Historical Data
-   ↓
-Learning
-   ↓
-Better Predictions
-   ↓
-Better Decisions
-   ↓
-Better Execution
+PHASE 3: Prediction & Intelligence          [ 🔄 NEXT STEP ]
+   ├── Baseline predictors (Mean, Median, Ridge)
+   ├── ML models (Random Forest, XGBoost)
+   ├── Confidence scoring (ensemble variance)
+   └── Distribution shift detection
+
+PHASE 4: Decision Engine & Scheduling       [ 📋 PLANNED ]
+   ├── Dynamic sizing with confidence headroom
+   ├── SLA/deadline-aware worker allocation
+   └── Safe fallback on distribution shift
+
+PHASE 5: Dashboard, Integration & Eval      [ 📋 PLANNED ]
+   ├── Web dashboard with live DAG visualization
+   ├── End-to-end feedback loop
+   └── 3-way quantitative benchmarking
 ```
 
 ---
 
-# 6. Evaluation Plan
-
-CloudPilot should be compared against multiple baselines.
-
-## Baseline 1 — Static Allocation
-
-Use fixed CPU/memory settings for every workload.
-
-## Baseline 2 — Default Kubernetes Behavior
-
-Run workloads without CloudPilot's prediction-driven resource decisions.
-
-## Baseline 3 — CloudPilot
-
-Use:
-
-```text
-prediction
-+
-confidence
-+
-distribution shift
-+
-SLA-aware decision making
-```
-
----
-
-## 6.1 Evaluation Metrics
-
-### Performance
-
-- workflow completion time
-- stage runtime
-- throughput
-
-### Resource efficiency
-
-- CPU utilization
-- memory utilization
-- CPU waste
-- memory waste
-- over-provisioning
-
-### Prediction quality
-
-- runtime MAE
-- runtime RMSE
-- CPU prediction error
-- memory prediction error
-- worker prediction accuracy
-
-### Scheduling quality
-
-- deadline compliance
-- SLA compliance
-- fallback frequency
-- scheduling decision latency
-
-### Robustness
-
-Evaluate:
-
-```text
-normal workloads
-larger workloads
-unseen workload sizes
-distribution-shifted workloads
-resource-constrained workloads
-```
-
----
-
-# 7. Genomic Dataset Strategy
-
-## Source Dataset
-
-Use:
-
-```text
-1000 Genomes Project Phase 3
-```
-
-Initial working source:
-
-```text
-Chromosome 22 genotype VCF
-```
-
-The downloaded raw file is stored under:
-
-```text
-data/genome/raw/
-```
-
-with its `.tbi` index.
-
-## Why chromosome 22?
-
-Chromosome 22 is being used as a practical development source because its Phase 3 VCF is much smaller than the largest chromosome files while still representing an autosomal 1000 Genomes workload.
-
-The chromosome itself is **not** the learning target.
-
-The important workload features are:
-
-```text
-region size
-variant count
-sample count
-dataset size
-stage type
-processing characteristics
-```
-
-Later, additional chromosomes/regions can be introduced to test generalization and distribution shift.
-
----
-
-# 8. Dataset Chunking Strategy
-
-Do not create separate downloaded raw files for every workload.
-
-Maintain:
-
-```text
-data/genome/raw/
-```
-
-as the source.
-
-Generate workload chunks:
-
-```text
-data/genome/chunks/
-```
-
-Example:
-
-```text
-small/
-  chr22_100kb.vcf.gz
-  chr22_100kb.vcf.gz.tbi
-
-medium/
-  chr22_1mb.vcf.gz
-  chr22_1mb.vcf.gz.tbi
-
-large/
-  chr22_4mb.vcf.gz
-  chr22_4mb.vcf.gz.tbi
-```
-
-This allows reproducible workload generation.
-
----
-
-# 9. Data Integrity Rules
-
-Never modify the raw VCF.
-
-Use:
-
-```text
-raw → extraction → chunks → processing → execution
-```
-
-not:
-
-```text
-raw → manually modify raw file
-```
-
-Keep large genomic files out of Git.
-
-`.gitignore` should include:
-
-```text
-data/genome/raw/
-data/genome/chunks/
-data/genome/processed/
-*.vcf
-*.vcf.gz
-*.vcf.gz.tbi
-```
-
----
-
-# 10. Recommended Installation Order
-
-## Already required for Phase 1
-
-```text
-WSL2
-Ubuntu
-Docker Desktop
-kubectl
-kind
-Python 3.11+
-Git
-VS Code
-```
-
-## Phase 1 Python packages
-
-```text
-fastapi
-uvicorn
-networkx
-pyyaml
-kubernetes
-pydantic
-pytest
-```
-
-## Phase 2
-
-Install:
-
-```text
-bcftools
-tabix
-pandas
-numpy
-```
-
-Ubuntu:
-
-```bash
-sudo apt update
-sudo apt install -y bcftools tabix
-```
-
-## Phase 3
-
-Install:
-
-```text
-scikit-learn
-xgboost
-joblib
-```
-
-## Later only if required
-
-```text
-Prometheus
-Grafana
-```
-
-Do not install heavy tools such as TensorFlow, PyTorch, CUDA, Kafka, Redis, Airflow, or Kubeflow unless a later implementation decision genuinely requires them.
-
----
-
-# 11. Implementation Order
-
-Follow this exact high-level order:
-
-```text
-PHASE 1
-Kubernetes DAG execution
-        ↓
-PHASE 2
-Genomic workload + profiling
-        ↓
-PHASE 3
-Prediction + confidence + shift detection
-        ↓
-PHASE 4
-Decision engine + intelligent scheduling
-        ↓
-PHASE 5
-Dashboard + evaluation
-```
-
-Do **not** jump directly to machine learning.
-
-CloudPilot needs reliable execution data before prediction can be meaningful.
-
----
-
-# 12. Definition of Done
-
-## Phase 1
-
-A YAML DAG executes correctly on Kubernetes.
-
-## Phase 2
-
-Real genomic workloads execute and produce structured profiling data.
-
-## Phase 3
-
-CloudPilot predicts runtime/resources and reports confidence and shift.
-
-## Phase 4
-
-Predictions influence Kubernetes resource and scheduling decisions.
-
-## Phase 5
-
-The complete platform is demonstrable and quantitatively evaluated against baselines.
-
----
-
-# 13. Final Project Architecture
-
-```text
-                    ┌──────────────────────┐
-                    │      Dashboard       │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Workflow API / DAG   │
-                    │ Parser + Validator   │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Workload Profiler    │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Prediction Engine    │
-                    │ Runtime / CPU / RAM  │
-                    └──────────┬───────────┘
-                               │
-                    ┌──────────┴───────────┐
-                    ▼                      ▼
-             Confidence              Shift Detection
-                    │                      │
-                    └──────────┬───────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │  Decision Engine     │
-                    │ SLA + Resources      │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Kubernetes Scheduler │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Kubernetes Jobs      │
-                    │ Genomic Workloads    │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Monitoring / Metrics │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │ Historical Dataset   │
-                    └──────────┬───────────┘
-                               │
-                               └──────► Model Improvement
-```
-
----
-
-# 14. Immediate Next Steps
-
-Since the raw chr22 files are already downloaded:
-
-### Step 1
-
-Verify:
-
-```text
-data/genome/raw/
-├── chr22 VCF.GZ
-└── chr22 VCF.GZ.TBI
-```
-
-### Step 2
-
-Do **not** unzip the VCF.
-
-### Step 3
-
-Finish Phase 1 Kubernetes workflow execution first.
-
-### Step 4
-
-Install `bcftools` and `tabix` when starting Phase 2.
-
-### Step 5
-
-Extract the first small genomic chunk.
-
-### Step 6
-
-Run that chunk through a CloudPilot workload.
-
-### Step 7
-
-Start collecting execution records.
-
-### Step 8
-
-Generate enough historical runs for Phase 3 prediction.
-
----
-
-## Core principle
-
-CloudPilot is not simply a Kubernetes workflow runner and not simply a genomic ML model.
-
-Its main contribution is the complete loop:
-
-```text
-Genomic workload
-      ↓
-Profile
-      ↓
-Predict
-      ↓
-Estimate confidence
-      ↓
-Detect shift
-      ↓
-Make resource decision
-      ↓
-Schedule on Kubernetes
-      ↓
-Measure actual execution
-      ↓
-Learn from execution history
-```
-
-That loop should remain the central architecture throughout the project.
+# 8. Immediate Next Steps (Starting Phase 3)
+
+1. **Install ML dependencies**:
+   ```bash
+   pip install scikit-learn xgboost joblib
+   ```
+2. **Create feature pipeline**:
+   Create `backend/prediction/feature_pipeline.py` to load `datasets/genomic_execution_history.csv` and encode categorical/numeric features.
+3. **Train baseline and ML models**:
+   Implement `backend/prediction/baseline.py`, `backend/prediction/runtime_model.py`, and `backend/prediction/resource_model.py`.
+4. **Implement confidence and shift scoring**:
+   Implement `backend/prediction/confidence.py` and `backend/prediction/drift.py`.
+5. **Add Phase 3 automated test suite**:
+   Create `tests/test_prediction.py` verifying model training, persistence, and inference latency (<10ms).

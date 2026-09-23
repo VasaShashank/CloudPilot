@@ -12,13 +12,15 @@ from backend.workflow.dag import WorkflowDAG
 from backend.k8s.job_builder import build_job
 from backend.k8s.job_manager import JobManager
 from backend.config import POLL_INTERVAL
+from backend.profiling.collector import ProfilingCollector
 
 logger = logging.getLogger('cloudpilot')
 
 
 class DAGScheduler:
-    def __init__(self):
-        self.job_manager = JobManager()
+    def __init__(self, job_manager: JobManager = None, profiling_collector: ProfilingCollector = None):
+        self.job_manager = job_manager or JobManager()
+        self.profiling_collector = profiling_collector or ProfilingCollector()
     
     def execute_workflow(self, workflow_def: WorkflowDefinition, workflow_id: str) -> WorkflowStatus:
         """Execute a complete workflow DAG on Kubernetes."""
@@ -74,12 +76,30 @@ class DAGScheduler:
                     status.stages[stage_id].completed_at = datetime.utcnow()
                     newly_completed.append(stage_id)
                     
+                    try:
+                        logs = self.job_manager.get_job_logs(job_name)
+                        stage_def = dag.get_stage_data(stage_id)
+                        self.profiling_collector.process_stage_completion(
+                            workflow_id, stage_def, status.stages[stage_id], logs
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not record profiling for {stage_id}: {e}")
+                    
                 elif self.job_manager.is_job_failed(job_name):
                     logger.error(f"[CloudPilot] Stage failed: {stage_id}")
                     status.stages[stage_id].state = StageState.FAILED
                     status.stages[stage_id].completed_at = datetime.utcnow()
                     status.stages[stage_id].error = "Kubernetes Job failed"
                     newly_failed.append(stage_id)
+                    
+                    try:
+                        logs = self.job_manager.get_job_logs(job_name)
+                        stage_def = dag.get_stage_data(stage_id)
+                        self.profiling_collector.process_stage_completion(
+                            workflow_id, stage_def, status.stages[stage_id], logs
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not record failure profiling for {stage_id}: {e}")
             
             for stage_id in newly_completed:
                 running.remove(stage_id)

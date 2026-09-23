@@ -59,6 +59,8 @@ async def create_workflow(file: Optional[UploadFile] = File(None), yaml_body: st
         workflow_definitions[workflow_id] = workflow_def
         
         return {"workflow_id": workflow_id, "status": status}
+    except HTTPException:
+        raise
     except (WorkflowParseError, WorkflowValidationError, CyclicDependencyError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

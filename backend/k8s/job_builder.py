@@ -3,8 +3,9 @@ from backend.config import WORKLOAD_IMAGE, JOB_PREFIX
 from backend.models.workflow import StageDefinition
 
 def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IMAGE) -> client.V1Job:
-    short_workflow_id = workflow_id[:8]
-    job_name = f"{JOB_PREFIX}-{short_workflow_id}-{stage.id}"
+    short_workflow_id = workflow_id[:8].lower().replace("_", "-")
+    sanitized_stage_id = stage.id.lower().replace("_", "-")
+    job_name = f"{JOB_PREFIX}-{short_workflow_id}-{sanitized_stage_id}"
     
     labels = {
         "app": "cloudpilot",
@@ -29,8 +30,9 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         resources.requests["memory"] = stage.memory
         
     container = client.V1Container(
-        name=stage.id,
+        name=sanitized_stage_id,
         image=stage_image,
+        image_pull_policy="IfNotPresent",
         env=env_vars,
         command=stage.command,
         resources=resources if resources.requests else None

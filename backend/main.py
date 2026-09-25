@@ -18,14 +18,24 @@ from backend.scheduler.dag_scheduler import DAGScheduler
 from backend.models.workflow import WorkflowStatus, WorkflowDefinition, WorkflowState
 from backend.config import API_HOST, API_PORT
 from backend.k8s.job_manager import JobManager
+from backend.prediction.predictor import CloudPilotPredictor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 logger = logging.getLogger('cloudpilot')
 
-app = FastAPI(title="CloudPilot Phase 1 API")
+app = FastAPI(title="CloudPilot API")
 
 workflows: dict[str, WorkflowStatus] = {}
 workflow_definitions: dict[str, WorkflowDefinition] = {}
+_predictor: Optional[CloudPilotPredictor] = None
+
+
+def get_predictor() -> CloudPilotPredictor:
+    global _predictor
+    if _predictor is None:
+        _predictor = CloudPilotPredictor().load_models()
+    return _predictor
+
 
 class RunResponse(BaseModel):
     message: str
@@ -126,6 +136,34 @@ def get_stage_logs(workflow_id: str, stage_id: str):
     logs = manager.get_job_logs(job_name)
     return logs
 
+
+@app.post("/predict/stage")
+def predict_stage_endpoint(stage_input: dict = Body(...)):
+    try:
+        predictor = get_predictor()
+        return predictor.predict_stage(stage_input)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/workflows/{workflow_id}/predict")
+def predict_workflow_endpoint(workflow_id: str, workload_metadata: Optional[dict] = Body(default=None)):
+    if workflow_id not in workflow_definitions:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    try:
+        predictor = get_predictor()
+        wf_def = workflow_definitions[workflow_id]
+        return predictor.predict_workflow(wf_def, workload_metadata=workload_metadata)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/models/evaluation")
+def get_models_evaluation():
+    predictor = get_predictor()
+    return predictor.evaluation_summary_
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
@@ -162,8 +200,20 @@ if __name__ == "__main__":
             except (WorkflowParseError, WorkflowValidationError, CyclicDependencyError) as e:
                 logger.error(f"[CloudPilot] Validation failed: {e}")
                 sys.exit(1)
+        elif command == "predict" and len(sys.argv) > 2:
+            file_path = sys.argv[2]
+            try:
+                workflow_def = parse_workflow_file(file_path)
+                validate_workflow(workflow_def)
+                predictor = get_predictor()
+                pred_res = predictor.predict_workflow(workflow_def)
+                print(json.dumps(pred_res, indent=2))
+            except Exception as e:
+                logger.error(f"[CloudPilot] Prediction failed: {e}")
+                sys.exit(1)
         else:
-            print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>]")
+            print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>|predict <workflow.yaml>]")
     else:
-        print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>]")
+        print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>|predict <workflow.yaml>]")
+
 

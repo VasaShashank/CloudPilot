@@ -1,0 +1,49 @@
+workflow:
+  name: genomic-analysis-pipeline
+
+stages:
+  - id: qc
+    type: vcf_stats
+    cpu: "500m"
+    memory: "512Mi"
+    env:
+      CHUNK_SIZE: small
+
+  - id: filtering
+    type: filtering
+    cpu: "500m"
+    memory: "512Mi"
+    depends_on:
+      - qc
+    env:
+      CHUNK_SIZE: small
+
+  - id: variant_processing
+    type: variant_processing
+    cpu: "1000m"
+    memory: "1Gi"
+    depends_on:
+      - filtering
+    env:
+      CHUNK_SIZE: small
+      THREADS: "2"
+
+  - id: feature_extraction
+    type: feature_extraction
+    cpu: "1000m"
+    memory: "1Gi"
+    depends_on:
+      - filtering
+    env:
+      CHUNK_SIZE: small
+      THREADS: "2"
+
+  - id: analysis
+    type: analysis
+    cpu: "500m"
+    memory: "512Mi"
+    depends_on:
+      - variant_processing
+      - feature_extraction
+    env:
+      CHUNK_SIZE: small

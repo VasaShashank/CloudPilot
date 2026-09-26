@@ -1,0 +1,111 @@
+{
+  "dataset_rows": 90,
+  "cv_folds": 5,
+  "targets": {
+    "runtime_seconds": {
+      "best_model": "random_forest",
+      "models": {
+        "stage_mean": {
+          "mae": 2.4194,
+          "rmse": 3.7747,
+          "mape_pct": 273.57,
+          "r2": 0.042
+        },
+        "stage_median": {
+          "mae": 2.1271,
+          "rmse": 4.1035,
+          "mape_pct": 109.79,
+          "r2": -0.1322
+        },
+        "ridge_regression": {
+          "mae": 1.3083,
+          "rmse": 2.488,
+          "mape_pct": 112.2,
+          "r2": 0.5838
+        },
+        "random_forest": {
+          "mae": 0.4104,
+          "rmse": 1.4021,
+          "mape_pct": 8.36,
+          "r2": 0.8678
+        },
+        "xgboost": {
+          "mae": 0.4396,
+          "rmse": 1.3494,
+          "mape_pct": 9.53,
+          "r2": 0.8776
+        }
+      }
+    },
+    "actual_cpu": {
+      "best_model": "xgboost",
+      "models": {
+        "stage_mean": {
+          "mae": 0.2986,
+          "rmse": 0.3668,
+          "mape_pct": 63.86,
+          "r2": -0.0474
+        },
+        "stage_median": {
+          "mae": 0.2927,
+          "rmse": 0.3857,
+          "mape_pct": 53.84,
+          "r2": -0.1578
+        },
+        "ridge_regression": {
+          "mae": 0.1707,
+          "rmse": 0.2096,
+          "mape_pct": 35.94,
+          "r2": 0.6581
+        },
+        "random_forest": {
+          "mae": 0.0212,
+          "rmse": 0.0427,
+          "mape_pct": 2.82,
+          "r2": 0.9858
+        },
+        "xgboost": {
+          "mae": 0.0193,
+          "rmse": 0.0318,
+          "mape_pct": 3.25,
+          "r2": 0.9921
+        }
+      }
+    },
+    "actual_memory_mb": {
+      "best_model": "xgboost",
+      "models": {
+        "stage_mean": {
+          "mae": 47.7506,
+          "rmse": 67.4747,
+          "mape_pct": 80.5,
+          "r2": -0.2073
+        },
+        "stage_median": {
+          "mae": 41.1438,
+          "rmse": 66.5548,
+          "mape_pct": 52.83,
+          "r2": -0.1746
+        },
+        "ridge_regression": {
+          "mae": 4.9707,
+          "rmse": 6.7991,
+          "mape_pct": 8.46,
+          "r2": 0.9877
+        },
+        "random_forest": {
+          "mae": 5.5473,
+          "rmse": 8.4043,
+          "mape_pct": 7.54,
+          "r2": 0.9813
+        },
+        "xgboost": {
+          "mae": 4.7274,
+          "rmse": 7.7085,
+          "mape_pct": 6.01,
+          "r2": 0.9842
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+workflow:
+  name: genomic-parallel
+
+stages:
+  - id: qc
+    type: quality_control
+
+  - id: preprocessing
+    type: preprocessing
+    depends_on:
+      - qc
+
+  - id: alignment
+    type: alignment
+    depends_on:
+      - preprocessing
+
+  - id: feature_extraction
+    type: feature_extraction
+    depends_on:
+      - preprocessing
+
+  - id: analysis
+    type: analysis
+    depends_on:
+      - alignment
+      - feature_extraction

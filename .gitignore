@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Large genomic files and directories (local only)
+data/genome/raw/
+data/genomic/raw/
+data/genome/chunks/
+data/genomic/chunks/
+data/genome/processed/
+data/genomic/processed/
+workloads/data/
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.tar

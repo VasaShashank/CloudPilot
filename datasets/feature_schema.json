@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudPilotExecutionFeatureRecord",
+  "description": "Schema for CloudPilot stage execution records used for historical profiling and ML prediction.",
+  "type": "object",
+  "properties": {
+    "workflow_id": {
+      "type": "string",
+      "description": "Unique identifier of the workflow"
+    },
+    "stage_id": {
+      "type": "string",
+      "description": "Stage name / identifier within the DAG"
+    },
+    "stage_type": {
+      "type": "string",
+      "description": "Genomic or processing stage type (e.g. vcf_stats, filtering, variant_processing, feature_extraction, analysis)"
+    },
+    "workload_id": {
+      "type": "string",
+      "description": "Genomic chunk or workload identifier (e.g. chr22_small_100s, chr22_medium_500s, chr22_large_full)"
+    },
+    "workload_source": {
+      "type": "string",
+      "description": "Origin of the workload: genomic, simulated, or phase1_test"
+    },
+    "chromosome": {
+      "type": "string",
+      "description": "Genomic chromosome (e.g. 22)"
+    },
+    "region_start": {
+      "type": "integer",
+      "description": "Starting genomic coordinate (base pairs)"
+    },
+    "region_end": {
+      "type": "integer",
+      "description": "Ending genomic coordinate (base pairs)"
+    },
+    "region_size": {
+      "type": "integer",
+      "description": "Genomic region size in base pairs (end - start)"
+    },
+    "variant_count": {
+      "type": "integer",
+      "description": "Total number of genomic variants in the input chunk"
+    },
+    "sample_count": {
+      "type": "integer",
+      "description": "Number of genomic sample genotypes in the input chunk"
+    },
+    "dataset_size_mb": {
+      "type": "number",
+      "description": "Compressed size of the genomic dataset chunk in megabytes"
+    },
+    "requested_cpu": {
+      "type": "string",
+      "description": "Kubernetes CPU request specification (e.g. 250m, 500m, 1000m, 2000m)"
+    },
+    "requested_memory_mb": {
+      "type": "number",
+      "description": "Kubernetes requested memory in megabytes"
+    },
+    "worker_count": {
+      "type": "integer",
+      "description": "Number of concurrent workers or threads allocated"
+    },
+    "runtime_seconds": {
+      "type": "number",
+      "description": "Total duration of stage execution in seconds"
+    },
+    "actual_cpu": {
+      "type": "number",
+      "description": "Measured CPU core seconds or usage"
+    },
+    "actual_memory_mb": {
+      "type": "number",
+      "description": "Measured peak resident memory in megabytes"
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Whether the stage completed successfully"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "Execution timestamp (UTC / local ISO format)"
+    }
+  },
+  "required": [
+    "workflow_id",
+    "stage_id",
+    "stage_type",
+    "workload_id",
+    "workload_source",
+    "chromosome",
+    "region_start",
+    "region_end",
+    "region_size",
+    "variant_count",
+    "sample_count",
+    "dataset_size_mb",
+    "requested_cpu",
+    "requested_memory_mb",
+    "worker_count",
+    "runtime_seconds",
+    "actual_cpu",
+    "actual_memory_mb",
+    "success",
+    "timestamp"
+  ]
+}

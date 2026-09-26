@@ -1,0 +1,16 @@
+target,unit,model_key,model_name,model_tier,cv_folds,dataset_rows,mae,rmse,mape_pct,r2_score,is_best
+runtime_seconds,s,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,2.4194,3.7747,273.57,0.042,False
+runtime_seconds,s,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,2.1271,4.1035,109.79,-0.1322,False
+runtime_seconds,s,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,1.3083,2.488,112.2,0.5838,False
+runtime_seconds,s,random_forest,Random Forest Regressor,3_Ensemble_Bagging_ML,5,90,0.4104,1.4021,8.36,0.8678,True
+runtime_seconds,s,xgboost,XGBoost Regressor,3_Ensemble_Boosting_ML,5,90,0.4396,1.3494,9.53,0.8776,False
+actual_cpu,cores,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,0.2986,0.3668,63.86,-0.0474,False
+actual_cpu,cores,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,0.2927,0.3857,53.84,-0.1578,False
+actual_cpu,cores,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,0.1707,0.2096,35.94,0.6581,False
+actual_cpu,cores,random_forest,Random Forest Regressor,3_Ensemble_Bagging_ML,5,90,0.0212,0.0427,2.82,0.9858,False
+actual_cpu,cores,xgboost,XGBoost Regressor,3_Ensemble_Boosting_ML,5,90,0.0193,0.0318,3.25,0.9921,True
+actual_memory_mb,MB,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,47.7506,67.4747,80.5,-0.2073,False
+actual_memory_mb,MB,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,41.1438,66.5548,52.83,-0.1746,False
+actual_memory_mb,MB,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,4.9707,6.7991,8.46,0.9877,False
+actual_memory_mb,MB,random_forest,Random Forest Regressor,3_Ensemble_Bagging_ML,5,90,5.5473,8.4043,7.54,0.9813,False
+actual_memory_mb,MB,xgboost,XGBoost Regressor,3_Ensemble_Boosting_ML,5,90,4.7274,7.7085,6.01,0.9842,True

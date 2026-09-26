@@ -25,13 +25,19 @@ class StageDefinition(BaseModel):
     env: Optional[dict[str, str]] = None
     cpu: Optional[str] = None
     memory: Optional[str] = None
+<<<<<<< HEAD
     limit_memory: Optional[str] = None
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 class WorkflowDefinition(BaseModel):
     """Complete workflow definition parsed from YAML."""
     name: str
     stages: list[StageDefinition]
+<<<<<<< HEAD
     deadline_seconds: Optional[float] = None
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 class StageStatus(BaseModel):
     """Runtime status of a single stage."""

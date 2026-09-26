@@ -10,9 +10,15 @@
 > **Status Summary:**
 > - **Phase 1 (Kubernetes Workflow Engine):** ✅ COMPLETED & VALIDATED (DAG execution, parallel branches, K8s Jobs).
 > - **Phase 2 (Genomic Workload Profiling & Monitoring):** ✅ COMPLETED & VALIDATED (9 VCF chunks, sample variation, containerized bcftools, 20-column schema, 94 clean ML records).
+<<<<<<< HEAD
 > - **Phase 3 (Prediction & Intelligence):** ✅ COMPLETED & VALIDATED (Baseline models, Random Forest, XGBoost, confidence scoring, distribution shift detection).
 > - **Phase 4 (Decision Engine & Intelligent Scheduling):** ✅ COMPLETED & VALIDATED (Dynamic K8s resource requests, SLA-aware scheduling, safe fallback).
 > - **Phase 5 (Dashboard, Integration & Evaluation):** 🔄 ACTIVE NEXT STEP (FastAPI Web UI, visual DAG execution, 3-way quantitative evaluation).
+=======
+> - **Phase 3 (Prediction & Intelligence):** 🔄 ACTIVE NEXT STEP (Baseline models, Random Forest, XGBoost, confidence scoring, distribution shift detection).
+> - **Phase 4 (Decision Engine & Intelligent Scheduling):** 📋 PLANNED (Dynamic K8s resource requests, SLA-aware scheduling, safe fallback).
+> - **Phase 5 (Dashboard, Integration & Evaluation):** 📋 PLANNED (FastAPI Web UI, visual DAG execution, 3-way quantitative evaluation).
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 ---
 
@@ -45,9 +51,15 @@ The project is divided into **5 meaningful phases** rather than many small imple
 |---|---|---|---|
 | 1 | Kubernetes Workflow Engine | ✅ Complete | Parallel DAG executes reliably as Kubernetes Jobs on kind cluster |
 | 2 | Genomic Workload Profiling & Monitoring | ✅ Complete | Real genomic workloads produce structured, varied 20-column execution dataset |
+<<<<<<< HEAD
 | 3 | Prediction & Intelligence | ✅ Complete | CloudPilot predicts runtime/resources and evaluates confidence/shift using Phase 2 data |
 | 4 | Decision Engine & Intelligent Scheduling | ✅ Complete | Predictions and confidence become dynamic Kubernetes resource/scheduling decisions |
 | 5 | Dashboard, Integration & Evaluation | 🔄 Active Next | Complete CloudPilot system is visualized via Web UI and quantitatively evaluated |
+=======
+| 3 | Prediction & Intelligence | 🔄 Active Next | CloudPilot predicts runtime/resources and evaluates confidence/shift using Phase 2 data |
+| 4 | Decision Engine & Intelligent Scheduling | 📋 Planned | Predictions and confidence become dynamic Kubernetes resource/scheduling decisions |
+| 5 | Dashboard, Integration & Evaluation | 📋 Planned | Complete CloudPilot system is visualized via Web UI and quantitatively evaluated |
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 ---
 
@@ -390,6 +402,7 @@ models/
 ```
 
 ### Phase 3 Acceptance Criteria:
+<<<<<<< HEAD
 - [x] Clean genomic dataset loaded directly from `datasets/genomic_execution_history.csv`.
 - [x] Baseline models implemented and evaluated.
 - [x] Random Forest and XGBoost models trained for runtime, CPU, and memory.
@@ -397,6 +410,15 @@ models/
 - [x] Prediction confidence calculated using ensemble variance.
 - [x] Distribution shift detector flags in-distribution vs out-of-distribution workloads.
 - [x] Models serialized and reloadable via automated unit tests (`tests/test_prediction.py`).
+=======
+- [ ] Clean genomic dataset loaded directly from `datasets/genomic_execution_history.csv`.
+- [ ] Baseline models implemented and evaluated.
+- [ ] Random Forest and XGBoost models trained for runtime, CPU, and memory.
+- [ ] ML models demonstrate superior MAE/RMSE over baselines.
+- [ ] Prediction confidence calculated using ensemble variance.
+- [ ] Distribution shift detector flags in-distribution vs out-of-distribution workloads.
+- [ ] Models serialized and reloadable via automated unit tests (`tests/test_prediction.py`).
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 ---
 
@@ -480,11 +502,19 @@ Update `backend/scheduler/dag_scheduler.py` and `backend/k8s/job_builder.py`:
 - Decision record logged to `datasets/execution_history.csv` to capture predicted vs actual efficiency.
 
 ### Phase 4 Acceptance Criteria:
+<<<<<<< HEAD
 - [x] Decision engine implemented under `backend/decision/decision_engine.py`.
 - [x] Dynamic resource calculation applied to Kubernetes Job creation.
 - [x] Safe fallback automatically triggers on low confidence or distribution shift.
 - [x] SLA deadline constraint adjusts worker count and parallelism.
 - [x] Zero OOMKills or container eviction failures across test suite.
+=======
+- [ ] Decision engine implemented under `backend/decision/decision_engine.py`.
+- [ ] Dynamic resource calculation applied to Kubernetes Job creation.
+- [ ] Safe fallback automatically triggers on low confidence or distribution shift.
+- [ ] SLA deadline constraint adjusts worker count and parallelism.
+- [ ] Zero OOMKills or container eviction failures across test suite.
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 ---
 
@@ -565,18 +595,30 @@ PHASE 2: Genomic Workload Profiling         [ ✅ COMPLETED ]
    ├── execution_history.csv (367 rows)
    └── genomic_execution_history.csv (94 rows)
 
+<<<<<<< HEAD
 PHASE 3: Prediction & Intelligence          [ ✅ COMPLETED ]
+=======
+PHASE 3: Prediction & Intelligence          [ 🔄 NEXT STEP ]
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
    ├── Baseline predictors (Mean, Median, Ridge)
    ├── ML models (Random Forest, XGBoost)
    ├── Confidence scoring (ensemble variance)
    └── Distribution shift detection
 
+<<<<<<< HEAD
 PHASE 4: Decision Engine & Scheduling       [ ✅ COMPLETED ]
+=======
+PHASE 4: Decision Engine & Scheduling       [ 📋 PLANNED ]
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
    ├── Dynamic sizing with confidence headroom
    ├── SLA/deadline-aware worker allocation
    └── Safe fallback on distribution shift
 
+<<<<<<< HEAD
 PHASE 5: Dashboard, Integration & Eval      [ 🔄 NEXT STEP ]
+=======
+PHASE 5: Dashboard, Integration & Eval      [ 📋 PLANNED ]
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
    ├── Web dashboard with live DAG visualization
    ├── End-to-end feedback loop
    └── 3-way quantitative benchmarking
@@ -584,6 +626,7 @@ PHASE 5: Dashboard, Integration & Eval      [ 🔄 NEXT STEP ]
 
 ---
 
+<<<<<<< HEAD
 # 8. Immediate Next Steps (Starting Phase 5)
 
 1. **Design FastAPI Dashboard UI**:
@@ -594,3 +637,19 @@ PHASE 5: Dashboard, Integration & Eval      [ 🔄 NEXT STEP ]
    Surface Phase 3/4 Intelligence (Confidence score, Fallback, Distribution shift) into the UI while workflows run.
 4. **Build Evaluation Script**:
    Create `scripts/evaluate_platform.py` to run the 3-way quantitative benchmark (Static vs Unmanaged vs CloudPilot).
+=======
+# 8. Immediate Next Steps (Starting Phase 3)
+
+1. **Install ML dependencies**:
+   ```bash
+   pip install scikit-learn xgboost joblib
+   ```
+2. **Create feature pipeline**:
+   Create `backend/prediction/feature_pipeline.py` to load `datasets/genomic_execution_history.csv` and encode categorical/numeric features.
+3. **Train baseline and ML models**:
+   Implement `backend/prediction/baseline.py`, `backend/prediction/runtime_model.py`, and `backend/prediction/resource_model.py`.
+4. **Implement confidence and shift scoring**:
+   Implement `backend/prediction/confidence.py` and `backend/prediction/drift.py`.
+5. **Add Phase 3 automated test suite**:
+   Create `tests/test_prediction.py` verifying model training, persistence, and inference latency (<10ms).
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1

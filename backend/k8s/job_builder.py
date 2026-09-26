@@ -23,11 +23,16 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         for k, v in stage.env.items():
             env_vars.append(client.V1EnvVar(name=k, value=str(v)))
             
+<<<<<<< HEAD
     resources = client.V1ResourceRequirements(requests={}, limits={})
+=======
+    resources = client.V1ResourceRequirements(requests={})
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
     if stage.cpu:
         resources.requests["cpu"] = stage.cpu
     if stage.memory:
         resources.requests["memory"] = stage.memory
+<<<<<<< HEAD
     if stage.limit_memory:
         resources.limits["memory"] = stage.limit_memory
         
@@ -35,6 +40,8 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         resources.requests = None
     if not resources.limits:
         resources.limits = None
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
         
     container = client.V1Container(
         name=sanitized_stage_id,
@@ -42,7 +49,11 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         image_pull_policy="IfNotPresent",
         env=env_vars,
         command=stage.command,
+<<<<<<< HEAD
         resources=resources if (resources.requests or resources.limits) else None
+=======
+        resources=resources if resources.requests else None
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
     )
     
     pod_spec = client.V1PodSpec(

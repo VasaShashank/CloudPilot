@@ -49,6 +49,7 @@ def parse_memory_mb(mem_str: Optional[str]) -> float:
         return 512.0
 
 class FeatureBuilder:
+<<<<<<< HEAD
     def __init__(self, dataset_path: Path = DEFAULT_DATASET_PATH, genomic_dataset_path: Optional[Path] = None):
         self.dataset_path = dataset_path
         if genomic_dataset_path is not None:
@@ -57,6 +58,11 @@ class FeatureBuilder:
             self.genomic_dataset_path = DEFAULT_GENOMIC_DATASET_PATH
         else:
             self.genomic_dataset_path = dataset_path.parent / "genomic_execution_history.csv"
+=======
+    def __init__(self, dataset_path: Path = DEFAULT_DATASET_PATH, genomic_dataset_path: Path = DEFAULT_GENOMIC_DATASET_PATH):
+        self.dataset_path = dataset_path
+        self.genomic_dataset_path = genomic_dataset_path
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
         self._ensure_dataset_file(self.dataset_path)
 
     def _ensure_dataset_file(self, path: Path):

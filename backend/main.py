@@ -18,11 +18,15 @@ from backend.scheduler.dag_scheduler import DAGScheduler
 from backend.models.workflow import WorkflowStatus, WorkflowDefinition, WorkflowState
 from backend.config import API_HOST, API_PORT
 from backend.k8s.job_manager import JobManager
+<<<<<<< HEAD
 from backend.prediction.predictor import CloudPilotPredictor
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 logger = logging.getLogger('cloudpilot')
 
+<<<<<<< HEAD
 app = FastAPI(title="CloudPilot API")
 
 workflows: dict[str, WorkflowStatus] = {}
@@ -36,6 +40,12 @@ def get_predictor() -> CloudPilotPredictor:
         _predictor = CloudPilotPredictor().load_models()
     return _predictor
 
+=======
+app = FastAPI(title="CloudPilot Phase 1 API")
+
+workflows: dict[str, WorkflowStatus] = {}
+workflow_definitions: dict[str, WorkflowDefinition] = {}
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 class RunResponse(BaseModel):
     message: str
@@ -136,6 +146,7 @@ def get_stage_logs(workflow_id: str, stage_id: str):
     logs = manager.get_job_logs(job_name)
     return logs
 
+<<<<<<< HEAD
 
 @app.post("/predict/stage")
 def predict_stage_endpoint(stage_input: dict = Body(...)):
@@ -164,6 +175,8 @@ def get_models_evaluation():
     return predictor.evaluation_summary_
 
 
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
@@ -200,6 +213,7 @@ if __name__ == "__main__":
             except (WorkflowParseError, WorkflowValidationError, CyclicDependencyError) as e:
                 logger.error(f"[CloudPilot] Validation failed: {e}")
                 sys.exit(1)
+<<<<<<< HEAD
         elif command == "predict" and len(sys.argv) > 2:
             file_path = sys.argv[2]
             try:
@@ -216,4 +230,10 @@ if __name__ == "__main__":
     else:
         print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>|predict <workflow.yaml>]")
 
+=======
+        else:
+            print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>]")
+    else:
+        print("Usage: python main.py [serve|run <workflow.yaml>|validate <workflow.yaml>]")
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 

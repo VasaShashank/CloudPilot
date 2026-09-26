@@ -13,13 +13,17 @@ from backend.k8s.job_builder import build_job
 from backend.k8s.job_manager import JobManager
 from backend.config import POLL_INTERVAL
 from backend.profiling.collector import ProfilingCollector
+<<<<<<< HEAD
 from backend.prediction.predictor import CloudPilotPredictor
 from backend.decision.decision_engine import DecisionEngine
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
 
 logger = logging.getLogger('cloudpilot')
 
 
 class DAGScheduler:
+<<<<<<< HEAD
     def __init__(self, job_manager: JobManager = None, profiling_collector: ProfilingCollector = None, predictor: CloudPilotPredictor = None):
         self.job_manager = job_manager or JobManager()
         self.profiling_collector = profiling_collector or ProfilingCollector()
@@ -28,6 +32,11 @@ class DAGScheduler:
             self.predictor.load_models()
         except Exception as e:
             logger.warning(f"[CloudPilot] Could not load predictor models: {e}")
+=======
+    def __init__(self, job_manager: JobManager = None, profiling_collector: ProfilingCollector = None):
+        self.job_manager = job_manager or JobManager()
+        self.profiling_collector = profiling_collector or ProfilingCollector()
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
     
     def execute_workflow(self, workflow_def: WorkflowDefinition, workflow_id: str) -> WorkflowStatus:
         """Execute a complete workflow DAG on Kubernetes."""
@@ -63,9 +72,14 @@ class DAGScheduler:
         runnable = dag.get_root_stages()
         logger.info(f"[CloudPilot] Runnable stages: {runnable}")
         
+<<<<<<< HEAD
         deadline_pressure = self._check_deadline_pressure(workflow_def, dag, status, completed)
         for stage_id in runnable:
             self._submit_stage(workflow_id, dag, stage_id, status, deadline_pressure=deadline_pressure)
+=======
+        for stage_id in runnable:
+            self._submit_stage(workflow_id, dag, stage_id, status)
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
             running.add(stage_id)
         
         # 5. Monitor loop
@@ -130,9 +144,14 @@ class DAGScheduler:
                 ]
                 if next_runnable:
                     logger.info(f"[CloudPilot] Runnable stages: {next_runnable}")
+<<<<<<< HEAD
                     deadline_pressure = self._check_deadline_pressure(workflow_def, dag, status, completed)
                     for stage_id in next_runnable:
                         self._submit_stage(workflow_id, dag, stage_id, status, deadline_pressure=deadline_pressure)
+=======
+                    for stage_id in next_runnable:
+                        self._submit_stage(workflow_id, dag, stage_id, status)
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
                         running.add(stage_id)
         
         # 6. Final status
@@ -147,6 +166,7 @@ class DAGScheduler:
         status.completed_at = datetime.utcnow()
         return status
     
+<<<<<<< HEAD
     def _submit_stage(self, workflow_id: str, dag: WorkflowDAG, stage_id: str, status: WorkflowStatus, deadline_pressure: bool = False):
         stage_def = dag.get_stage_data(stage_id)
         
@@ -167,6 +187,10 @@ class DAGScheduler:
         except Exception as e:
             logger.warning(f"[CloudPilot] Prediction/Decision failed for {stage_id}, using defaults. Error: {e}")
             
+=======
+    def _submit_stage(self, workflow_id: str, dag: WorkflowDAG, stage_id: str, status: WorkflowStatus):
+        stage_def = dag.get_stage_data(stage_id)
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1
         job = build_job(workflow_id, stage_def)
         job_name = self.job_manager.create_job(job)
         
@@ -192,6 +216,7 @@ class DAGScheduler:
                 status.stages[stage_id].error = f"Dependency failed: {failed_stage}"
                 failed.add(stage_id)
                 to_check.extend(dag.get_downstream(stage_id))
+<<<<<<< HEAD
                 
     def _check_deadline_pressure(self, workflow_def: WorkflowDefinition, dag: WorkflowDAG, status: WorkflowStatus, completed: set) -> bool:
         """Check if the remaining critical path risks violating the SLA deadline."""
@@ -226,3 +251,5 @@ class DAGScheduler:
             logger.warning(f"[CloudPilot] Could not calculate deadline pressure: {e}")
             
         return False
+=======
+>>>>>>> 7a9de9c1505bb7839e834f195fb148778d6108b1

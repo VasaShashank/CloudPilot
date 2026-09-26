@@ -42,6 +42,9 @@ class StageStatus(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
+    prediction: Optional[dict] = None
+    decision: Optional[dict] = None
+    actual_metrics: Optional[dict] = None
 
 class WorkflowStatus(BaseModel):
     """Runtime status of an entire workflow."""

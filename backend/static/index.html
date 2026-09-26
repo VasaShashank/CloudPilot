@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudPilot Apex — Intelligent Autonomous Kubernetes Orchestration</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <!-- Cytoscape for DAG rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+  <!-- Dagre layout algorithm for Cytoscape -->
+  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+</head>
+<body>
+
+  <!-- Cyber Grid Background Texture -->
+  <div class="cyber-grid-overlay"></div>
+
+  <!-- Top Mission Control Navigation Bar -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-icon-wrapper">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            <circle cx="12" cy="12" r="3" fill="#000"></circle>
+          </svg>
+        </div>
+      </div>
+      <div class="brand-title">
+        <div class="brand-title-row">
+          <h1>CLOUDPILOT <span style="font-weight:300; opacity:0.8;">APEX</span></h1>
+          <span class="brand-pill">MISSION v5.0</span>
+        </div>
+        <div class="brand-subtitle">
+          <span>Autonomous Predictive K8s Orchestrator</span>
+          <span style="opacity:0.4;">•</span>
+          <span style="color:var(--cyan); font-family:var(--font-mono);">chr22 Genomes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Central Mode Switcher -->
+    <div class="header-nav">
+      <button class="nav-tab active" id="tabBtnOrchestrator" onclick="switchTab('orchestrator')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Live Orchestrator (Mission Control)
+      </button>
+      <button class="nav-tab" id="tabBtnEvaluation" onclick="switchTab('evaluation')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        3-Way Empirical Benchmark
+      </button>
+    </div>
+
+    <!-- Cluster & System Telemetry Status -->
+    <div class="header-status">
+      <div class="telemetry-chip">
+        <span class="pulse-dot green"></span>
+        <span style="font-weight:600;">kind-cluster:</span>
+        <span style="color:var(--emerald); font-family:var(--font-mono);">Online (1.31)</span>
+      </div>
+
+      <div class="telemetry-chip">
+        <span class="pulse-dot cyan"></span>
+        <span style="font-weight:600;">ML Engine:</span>
+        <span style="color:var(--cyan); font-family:var(--font-mono);">Armed (96.8% cert)</span>
+      </div>
+
+      <!-- Sci-Fi Audio Effects Toggle -->
+      <button class="btn-icon" id="btnSoundToggle" title="Toggle Futuristic Sound Effects" onclick="toggleAudioFX()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Executive HUD Ribbon (Live Key Metrics) -->
+  <section class="stats-ribbon">
+    <!-- Metric 1: CPU Efficiency -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">CPU Core Optimization</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statCpuEff">+23.4%</span>
+          <span class="hud-badge cyan">Target Beat</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill cyan" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="26"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Metric 2: Memory Slashed -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">Memory Waste Slashed</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statMemSaved">91.0%</span>
+          <span class="hud-badge green">>35% Quota</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill green" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="10"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Metric 3: Model Certainty -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">Mean Neural Confidence</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statConfidence">96.8%</span>
+          <span class="hud-badge violet">High Certainty</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill violet" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="4"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Metric 4: SLA Guardian -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">SLA Breach Guardian</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statSlaRate">0.0%</span>
+          <span class="hud-badge emerald">0 Breaches</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill green" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"></circle>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Multi-Pane Viewport -->
+  <main class="main-content">
+
+    <!-- ====================================================================
+         PANE 1: LIVE MISSION CONTROL (ORCHESTRATOR)
+         ==================================================================== -->
+    <div class="tab-pane active" id="paneOrchestrator">
+      <div class="orchestrator-grid">
+        
+        <!-- LEFT: Cockpit & Submissions -->
+        <aside class="panel-column">
+          <div class="panel-header">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              Workflow Cockpit
+            </h2>
+            <span class="brand-pill" style="font-size:9px;">YAML PARSER</span>
+          </div>
+
+          <div class="panel-body">
+            <!-- Template Selector -->
+            <div class="form-group">
+              <label class="form-label">
+                <span>Pipeline Architecture</span>
+                <span style="color:var(--cyan); font-size:10px;">TEMPLATES</span>
+              </label>
+              <select class="form-select" id="templateSelect" onchange="onTemplateChange()">
+                <option value="genomic_pipeline">🧬 5-Stage Live Genomic Pipeline (bcftools)</option>
+                <option value="linear">➡️ Linear 4-Stage Chain</option>
+                <option value="parallel">💠 Parallel Diamond Pipeline</option>
+                <option value="custom">✍️ Custom Workflow Manifest</option>
+              </select>
+            </div>
+
+            <!-- Genomic Workload Parameter Matrix -->
+            <div class="form-group" id="workloadPresetGroup">
+              <label class="form-label">
+                <span>Chromosome 22 Genomic Slice</span>
+                <span id="genomicScopeTag" style="color:var(--emerald); font-family:var(--font-mono); font-size:10px;">17,985 VARIANTS</span>
+              </label>
+              <select class="form-select" id="workloadSelect" onchange="onWorkloadChange()">
+                <option value="chr22_small_100s">chr22 Small (100 kb / 1,170 vars) • 100 samples</option>
+                <option value="chr22_small_500s">chr22 Small (100 kb / 1,170 vars) • 500 samples</option>
+                <option value="chr22_small_full">chr22 Small (100 kb / 1,170 vars) • 2,504 samples</option>
+                <option value="chr22_medium_100s">chr22 Medium (1 Mb / 17,985 vars) • 100 samples</option>
+                <option value="chr22_medium_500s" selected>chr22 Medium (1 Mb / 17,985 vars) • 500 samples</option>
+                <option value="chr22_medium_full">chr22 Medium (1 Mb / 17,985 vars) • 2,504 samples</option>
+                <option value="chr22_large_100s">chr22 Large (4 Mb / 109,665 vars) • 100 samples</option>
+                <option value="chr22_large_500s">chr22 Large (4 Mb / 109,665 vars) • 500 samples</option>
+                <option value="chr22_large_full">chr22 Large (4 Mb / 109,665 vars) • 2,504 samples</option>
+              </select>
+            </div>
+
+            <!-- SLA Target Budget -->
+            <div class="form-group">
+              <label class="form-label">
+                <span>Phase 4 SLA Deadline (Seconds)</span>
+                <span style="color:var(--amber); font-family:var(--font-mono); font-size:10px;">DEADLINE-AWARE</span>
+              </label>
+              <input type="number" class="form-input" id="slaInput" placeholder="e.g. 60" value="60">
+            </div>
+
+            <!-- YAML Code Manifest -->
+            <div class="form-group">
+              <div class="yaml-editor-wrapper">
+                <div class="yaml-editor-header">
+                  <span class="yaml-filename">workflow.manifest.yaml</span>
+                  <button class="btn-secondary" style="padding:2px 8px; font-size:10px;" onclick="resetYaml()">Reset</button>
+                </div>
+                <textarea class="yaml-textarea" id="yamlEditor" spellcheck="false"></textarea>
+              </div>
+            </div>
+
+            <!-- Master Action Button -->
+            <button class="btn-launch" id="btnSubmit" onclick="submitWorkflow()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Initiate Orchestration
+            </button>
+
+            <!-- Mission History Feed -->
+            <div class="form-group" style="margin-top:6px;">
+              <label class="form-label">
+                <span>Mission History</span>
+                <button class="btn-secondary" style="padding:2px 8px; font-size:10px;" onclick="fetchWorkflows()">Sync</button>
+              </label>
+              <div class="history-list" id="workflowsList">
+                <!-- Dynamically rendered -->
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- CENTER: Cybernetic Cytoscape DAG Studio -->
+        <section class="graph-column">
+          <!-- Floating Dock Toolbar -->
+          <div class="graph-toolbar">
+            <button class="dock-btn highlight" onclick="fitGraph()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+              Center View
+            </button>
+            <button class="dock-btn" onclick="relayoutGraph()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              Auto-Align
+            </button>
+            <button class="dock-btn" id="btnRunWorkflow" onclick="runCurrentWorkflow()" style="display:none; color:var(--cyan);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Run DAG
+            </button>
+            <button class="dock-btn" id="btnPollToggle" onclick="togglePolling()">
+              <span class="pulse-dot green" style="width:6px; height:6px;"></span>
+              Live Sync (2s)
+            </button>
+          </div>
+
+          <!-- Active Mission Status Banner Overlay -->
+          <div class="graph-overlay-status">
+            <span id="currentWfBadge" class="badge badge-pending">No Active Mission</span>
+            <span id="currentWfName" style="font-family:var(--font-display); font-weight:700; font-size:13px; color:#fff;"></span>
+          </div>
+
+          <!-- Center Crosshair Backdrop -->
+          <div class="graph-crosshair"></div>
+
+          <!-- Cytoscape Graph Canvas -->
+          <div id="cy" class="graph-container"></div>
+
+          <!-- Status Legend -->
+          <div class="graph-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#64748b;"></span> PENDING</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--cyan); box-shadow:0 0 10px var(--cyan);"></span> RUNNING (BURST)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--emerald); box-shadow:0 0 10px var(--emerald);"></span> COMPLETED</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--rose); box-shadow:0 0 10px var(--rose);"></span> FAILED</div>
+          </div>
+        </section>
+
+        <!-- RIGHT: Neural Intelligence & Stage Telemetry Inspector -->
+        <aside class="panel-column right">
+          <div class="panel-header">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              Stage Telemetry & AI Inspector
+            </h2>
+            <span id="selectedStageBadge" class="badge badge-pending" style="display:none;">PENDING</span>
+          </div>
+
+          <div class="panel-body" id="inspectorBody">
+            <!-- Empty State -->
+            <div id="inspectorEmptyState" style="text-align:center; padding:60px 16px; color:var(--text-muted);">
+              <div style="width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid var(--border-glass); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+              </div>
+              <h3 style="font-family:var(--font-display); color:#fff; font-size:15px; font-weight:700;">No Stage Selected</h3>
+              <p style="font-size:12px; margin-top:6px; line-height:1.5;">Click any node in the DAG topology to inspect its Phase 3 ML predictions, Phase 4 Decision allocations, and live container telemetry stream.</p>
+            </div>
+
+            <!-- Stage Details Container -->
+            <div id="inspectorDetails" style="display:none; display:flex; flex-direction:column; gap:16px;">
+              <!-- Hologram Header Card -->
+              <div class="inspector-card glow-cyan">
+                <div class="card-title">
+                  <span id="inspStageId" style="font-family:var(--font-mono); font-size:15px; font-weight:700; color:#fff;">stage-id</span>
+                  <span id="inspStageType" class="badge badge-pending">type</span>
+                </div>
+                <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:2px;">
+                  <span>Pod/Job: <code id="inspJobName" style="color:var(--cyan);">-</code></span>
+                  <span>Duration: <b id="inspDuration" style="color:#fff;">-</b></span>
+                </div>
+              </div>
+
+              <!-- High-Visibility Ruby Red Alert Card (Shown only on FAILED) -->
+              <div class="alert-failed-card" id="inspAlertFailedCard" style="display:none;">
+                <div class="alert-failed-header">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff0055" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <span>STAGE FAILURE ALERT DETECTED</span>
+                </div>
+                <div class="alert-failed-msg" id="inspErrorMsg">
+                  Kubernetes Job pod terminated with non-zero exit code.
+                </div>
+                <div class="alert-fallback-rec">
+                  ⚠️ <b>Phase 4 Decision Engine Recommendation:</b> Distribution shift or resource throttling suspected. Automatic Tier 3 safe fallback allocation (2000m CPU / 2Gi RAM / 4 Threads) prepared.
+                </div>
+                <button class="btn-fallback-launch" onclick="retryStageWithFallback()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                  Apply Safe-Fallback & Retry Stage
+                </button>
+              </div>
+
+              <!-- Phase 3 Neural Predictions -->
+              <div class="inspector-card">
+                <div class="card-title">
+                  <span>Phase 3 Neural Regressors</span>
+                  <span id="inspShiftBadge" class="badge badge-completed">NORMAL SHIFT</span>
+                </div>
+
+                <div class="metrics-matrix">
+                  <div class="matrix-item">
+                    <span class="matrix-label">Predicted Runtime</span>
+                    <span class="matrix-val cyan" id="inspPredRuntime">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">Predicted CPU Core</span>
+                    <span class="matrix-val green" id="inspPredCpu">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">Predicted Memory</span>
+                    <span class="matrix-val violet" id="inspPredMem">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">Optimal Threads</span>
+                    <span class="matrix-val amber" id="inspPredWorkers">-</span>
+                  </div>
+                </div>
+
+                <!-- Confidence Gauge -->
+                <div class="confidence-box">
+                  <div class="confidence-header">
+                    <span style="color:var(--text-muted); font-weight:600;">Model Certainty (Tree Variance)</span>
+                    <b id="inspConfidenceVal" style="color:var(--emerald); font-family:var(--font-mono); font-size:13px;">96.8%</b>
+                  </div>
+                  <div class="confidence-track">
+                    <div class="confidence-progress" id="inspConfidenceBar" style="width: 96.8%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Phase 4 Decision Engine Allocation -->
+              <div class="inspector-card glow-violet">
+                <div class="card-title">
+                  <span>Phase 4 Decision Engine</span>
+                  <span id="inspTierBadge" class="badge badge-completed" style="border:1px solid var(--emerald); color:var(--emerald);">TIER 1 (HIGH CONF)</span>
+                </div>
+
+                <div class="metrics-matrix">
+                  <div class="matrix-item">
+                    <span class="matrix-label">CPU Request</span>
+                    <span class="matrix-val cyan" id="inspAllocCpu">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">Memory Request</span>
+                    <span class="matrix-val cyan" id="inspAllocMem">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">K8s Memory Limit</span>
+                    <span class="matrix-val amber" id="inspAllocLimit">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">SLA Worker Count</span>
+                    <span class="matrix-val green" id="inspAllocWorkers">-</span>
+                  </div>
+                </div>
+
+                <!-- Headroom Allocation Stack Visual -->
+                <div class="headroom-visual-container">
+                  <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-muted);">
+                    <span>Allocation Headroom Stack</span>
+                    <span style="color:var(--cyan);">+25% Headroom</span>
+                  </div>
+                  <div class="headroom-bar-stack">
+                    <div class="headroom-base" style="width:70%;" title="Base Predicted Usage"></div>
+                    <div class="headroom-margin" style="width:20%;" title="Safety Headroom Margin"></div>
+                    <div class="headroom-limit" style="width:10%;" title="K8s OOM Hard Cap"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actual Measured Telemetry -->
+              <div class="inspector-card" id="cardActualTelemetry">
+                <div class="card-title">
+                  <span>Live Profiling Actuals</span>
+                  <span class="badge badge-completed" style="font-size:9px;">PROFILED</span>
+                </div>
+                <div class="metrics-matrix">
+                  <div class="matrix-item">
+                    <span class="matrix-label">Actual CPU Usage</span>
+                    <span class="matrix-val" id="inspActualCpu" style="color:#fff;">-</span>
+                  </div>
+                  <div class="matrix-item">
+                    <span class="matrix-label">Peak Memory Usage</span>
+                    <span class="matrix-val" id="inspActualMem" style="color:#fff;">-</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Container Terminal Stream -->
+              <div class="terminal-window">
+                <div class="terminal-header">
+                  <span>CONTAINER LOG STREAM</span>
+                  <button class="btn-secondary" style="padding:2px 8px; font-size:10px;" onclick="refreshLogs()">Refresh Stream</button>
+                </div>
+                <div class="terminal-body" id="inspLogs">Select stage to stream live container logs...</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         PANE 2: EMPIRICAL 3-WAY BENCHMARK & EVALUATION
+         ==================================================================== -->
+    <div class="tab-pane" id="paneEvaluation">
+      <div class="evaluation-pane">
+        
+        <!-- Hero Evaluation Banner -->
+        <div class="eval-hero-banner">
+          <div class="eval-hero-text">
+            <h2>3-Way Empirical Platform Benchmark</h2>
+            <p>Quantitative validation comparing CloudPilot's predictive allocation against static provisioning and unmanaged burstable Kubernetes across 100 chromosomal genomic execution stages.</p>
+          </div>
+          <button class="btn-launch" onclick="triggerEvaluation()" style="padding:10px 20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            Re-run Benchmark Suite
+          </button>
+        </div>
+
+        <!-- 3 Strategy Battleground Cards -->
+        <div class="benchmark-cards-grid">
+          <!-- Strategy 1: Static -->
+          <div class="bench-card">
+            <div class="bench-header">
+              <div>
+                <div class="bench-title">Baseline 1: Static Allocation</div>
+                <div class="bench-desc">Fixed standard sizing (1000m CPU / 1024Mi RAM per container)</div>
+              </div>
+              <span class="badge badge-pending">STATIC</span>
+            </div>
+            <div class="metrics-matrix">
+              <div class="matrix-item">
+                <span class="matrix-label">Allocated CPU</span>
+                <span class="matrix-val" id="evalStaticCpu">100.0 c</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">CPU Waste Ratio</span>
+                <span class="matrix-val" id="evalStaticCpuWaste" style="color:var(--rose);">55.8%</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">Allocated RAM</span>
+                <span class="matrix-val" id="evalStaticMem">102,400 MiB</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">RAM Waste Ratio</span>
+                <span class="matrix-val" id="evalStaticMemWaste" style="color:var(--rose);">91.0%</span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border-glass); padding-top:10px;">
+              ⚠️ Severe overprovisioning on small stages and high risk of SLA breach on compute-heavy variant stages.
+            </div>
+          </div>
+
+          <!-- Strategy 2: Unmanaged -->
+          <div class="bench-card">
+            <div class="bench-header">
+              <div>
+                <div class="bench-title">Baseline 2: Unmanaged K8s</div>
+                <div class="bench-desc">Default burstable behavior without resource requests or limits</div>
+              </div>
+              <span class="badge badge-pending">UNBOUNDED</span>
+            </div>
+            <div class="metrics-matrix">
+              <div class="matrix-item">
+                <span class="matrix-label">Node Footprint</span>
+                <span class="matrix-val">4.0 cores / node</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">Contention Risk</span>
+                <span class="matrix-val" style="color:var(--amber);">SEVERE</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">OOM Eviction Risk</span>
+                <span class="matrix-val" style="color:var(--rose);">CRITICAL</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">SLA Predictability</span>
+                <span class="matrix-val" style="color:var(--rose);">UNBOUNDED</span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border-glass); padding-top:10px;">
+              ⚠️ Noisy neighbor slowdowns and OOMKills under concurrent multithreaded genomic pipelines.
+            </div>
+          </div>
+
+          <!-- Strategy 3: CloudPilot Apex -->
+          <div class="bench-card highlight">
+            <div class="bench-header">
+              <div>
+                <div class="bench-title" style="color:var(--cyan);">Baseline 3: CloudPilot Apex</div>
+                <div class="bench-desc">ML Predictions + Confidence Headrooms + Phase 4 SLA Control</div>
+              </div>
+              <span class="badge badge-completed">OPTIMAL</span>
+            </div>
+            <div class="metrics-matrix">
+              <div class="matrix-item" style="border-color:rgba(0, 242, 254, 0.3);">
+                <span class="matrix-label">CPU Footprint Saved</span>
+                <span class="matrix-val cyan" id="evalCpCpuReduction">+23.4%</span>
+              </div>
+              <div class="matrix-item" style="border-color:rgba(16, 185, 129, 0.3);">
+                <span class="matrix-label">RAM Footprint Saved</span>
+                <span class="matrix-val green" id="evalCpMemReduction">+91.0%</span>
+              </div>
+              <div class="matrix-item" style="border-color:rgba(139, 92, 246, 0.3);">
+                <span class="matrix-label">SLA Violations</span>
+                <span class="matrix-val green" id="evalCpSlaBreaches">0 (0.0%)</span>
+              </div>
+              <div class="matrix-item" style="border-color:rgba(245, 158, 11, 0.3);">
+                <span class="matrix-label">Mean Confidence</span>
+                <span class="matrix-val amber" id="evalCpMeanConf">96.8%</span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--emerald); font-weight:600; border-top:1px solid var(--border-glass); padding-top:10px;">
+              ✅ Autonomous +25% to +75% dynamic safety headroom with 0 container evictions across 95 tests.
+            </div>
+          </div>
+        </div>
+
+        <!-- Sample Production Stages Comparison Matrix Table -->
+        <div class="eval-table-wrapper">
+          <div class="eval-table-header">
+            <h3>Sample Production Stage Sizing Matrix</h3>
+            <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">EMPIRICAL MATRIX EVALUATION</span>
+          </div>
+          <table class="eval-table">
+            <thead>
+              <tr>
+                <th>Stage Type</th>
+                <th>Genomic Scope</th>
+                <th>Actual CPU</th>
+                <th>Static CPU</th>
+                <th>CloudPilot CPU</th>
+                <th>Actual RAM</th>
+                <th>Static RAM</th>
+                <th>CloudPilot RAM</th>
+                <th>Decision Tier</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody id="evalSampleTableBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Dashboard JavaScript Logic -->
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

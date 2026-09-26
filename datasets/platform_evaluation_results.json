@@ -1,0 +1,186 @@
+{
+  "records_evaluated": 103,
+  "mean_confidence": 0.968,
+  "decision_tiers": {
+    "HIGH_CONFIDENCE": 0,
+    "MODERATE_CONFIDENCE": 0,
+    "FALLBACK": 0,
+    "high": 103
+  },
+  "distribution_shifts": {
+    "NORMAL": 103,
+    "WARNING": 0,
+    "SHIFTED": 0
+  },
+  "metrics": {
+    "cpu": {
+      "total_actual_cores": 59.75,
+      "static_allocated_cores": 103.0,
+      "cloudpilot_allocated_cores": 78.57,
+      "static_waste_ratio": 0.42,
+      "cloudpilot_waste_ratio": 0.2396,
+      "waste_reduction_pct": 42.94,
+      "allocated_reduction_pct": 23.72,
+      "target_achieved": true
+    },
+    "memory": {
+      "total_actual_mb": 7361.3,
+      "static_allocated_mb": 105472.0,
+      "cloudpilot_allocated_mb": 9386.0,
+      "static_waste_ratio": 0.9302,
+      "cloudpilot_waste_ratio": 0.2157,
+      "waste_reduction_pct": 76.81,
+      "allocated_reduction_pct": 91.1,
+      "target_achieved": true
+    },
+    "sla": {
+      "static_violations": 0,
+      "cloudpilot_violations": 0,
+      "cloudpilot_violation_rate_pct": 0.0,
+      "target_achieved": true
+    },
+    "accuracy": {
+      "runtime_mape_pct": 199.81,
+      "cpu_mape_pct": 26.33,
+      "memory_mape_pct": 67.04
+    },
+    "savings": {
+      "core_hours_saved": 0.0189,
+      "memory_gb_hours_saved": 0.0727,
+      "cpu_footprint_reduction_pct": 23.72,
+      "memory_footprint_reduction_pct": 91.1
+    }
+  },
+  "sample_stages": [
+    {
+      "stage_type": "vcf_stats",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.5,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.618,
+      "actual_mem_mb": 49.1,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 121.0,
+      "tier": "high",
+      "confidence": 0.959
+    },
+    {
+      "stage_type": "filtering",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.422,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.522,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 66.0,
+      "tier": "high",
+      "confidence": 0.973
+    },
+    {
+      "stage_type": "variant_processing",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 1.0,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 1.252,
+      "actual_mem_mb": 46.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 122.0,
+      "tier": "high",
+      "confidence": 0.96
+    },
+    {
+      "stage_type": "feature_extraction",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.25,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.305,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 69.0,
+      "tier": "high",
+      "confidence": 0.971
+    },
+    {
+      "stage_type": "analysis",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.857,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 1.006,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 80.0,
+      "tier": "high",
+      "confidence": 0.974
+    },
+    {
+      "stage_type": "vcf_stats",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.797,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 1.012,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 83.0,
+      "tier": "high",
+      "confidence": 0.979
+    },
+    {
+      "stage_type": "filtering",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.5,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.623,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 84.0,
+      "tier": "high",
+      "confidence": 0.98
+    },
+    {
+      "stage_type": "variant_processing",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.426,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.495,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 67.0,
+      "tier": "high",
+      "confidence": 0.965
+    },
+    {
+      "stage_type": "feature_extraction",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.736,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.948,
+      "actual_mem_mb": 28.0,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 82.0,
+      "tier": "high",
+      "confidence": 0.975
+    },
+    {
+      "stage_type": "analysis",
+      "variant_count": 1170,
+      "sample_count": 100,
+      "actual_cpu": 0.5,
+      "static_cpu": 1.0,
+      "cloudpilot_cpu": 0.618,
+      "actual_mem_mb": 50.8,
+      "static_mem_mb": 1024.0,
+      "cloudpilot_mem_mb": 116.0,
+      "tier": "high",
+      "confidence": 0.958
+    }
+  ]
+}

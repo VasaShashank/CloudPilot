@@ -105,9 +105,15 @@ class DAGScheduler:
                     try:
                         logs = self.job_manager.get_job_logs(job_name)
                         stage_def = dag.get_stage_data(stage_id)
-                        self.profiling_collector.process_stage_completion(
+                        record = self.profiling_collector.process_stage_completion(
                             workflow_id, stage_def, status.stages[stage_id], logs
                         )
+                        if record:
+                            status.stages[stage_id].actual_metrics = {
+                                "actual_cpu": record.get("actual_cpu"),
+                                "actual_memory_mb": record.get("actual_memory_mb"),
+                                "runtime_seconds": record.get("runtime_seconds"),
+                            }
                     except Exception as exc:
                         logger.warning(f"Could not record profiling for {stage_id}: {exc}")
 
@@ -183,7 +189,7 @@ class DAGScheduler:
         # Phase 4: intelligent resource injection
         if self._predictor is not None:
             stage_def = self._apply_intelligence(
-                stage_def, dag, completed, workflow_start, deadline_seconds
+                stage_def, dag, completed, workflow_start, deadline_seconds, status
             )
 
         job = build_job(workflow_id, stage_def)
@@ -201,6 +207,7 @@ class DAGScheduler:
         completed: set,
         workflow_start: datetime,
         deadline_seconds: int | None,
+        status: WorkflowStatus = None,
     ):
         """
         Run Phase-3 prediction → Phase-4 decision and mutate stage_def in place
@@ -218,6 +225,10 @@ class DAGScheduler:
         )
 
         decision = DecisionEngine.calculate_resources(prediction, deadline_pressure=deadline_pressure)
+
+        if status and stage_def.id in status.stages:
+            status.stages[stage_def.id].prediction = prediction
+            status.stages[stage_def.id].decision = decision
 
         # Inject decision into stage_def (Pydantic model copy)
         updated = stage_def.model_copy(update={

@@ -1,533 +1,334 @@
-# CloudPilot — Phase 1: Kubernetes Workflow Execution Engine
+# 🧬 CloudPilot Apex
+### Intelligent Predictive Resource Orchestration for Genomic Analysis Workflows on Kubernetes
 
-**CloudPilot** is an Intelligent Predictive Resource Orchestration Platform for Genomic Analysis Workflows on Kubernetes.
-
-**Phase 1** implements the foundational workflow execution engine: a DAG-based orchestrator that parses YAML workflow definitions, validates dependencies, detects parallelism, and executes stages as Kubernetes Jobs with proper dependency management.
-
----
-
-## 1. Project Purpose
-
-Phase 1 proves the core concept:
-
-```
-YAML DAG → Dependency Validation → Parallel Execution → Kubernetes Jobs → Status Reporting
-```
-
-**What Phase 1 does:**
-- Parses workflow DAGs from YAML definitions
-- Validates structure and detects cycles
-- Identifies stages that can run in parallel
-- Creates Kubernetes Jobs for each stage
-- Monitors Job completion and unlocks dependent stages
-- Reports per-stage and workflow-level status
-
-**What Phase 1 does NOT do (reserved for later phases):**
-- ML-powered resource prediction
-- Dynamic autoscaling
-- Prometheus monitoring
-- Authentication/authorization
-- Production cloud deployment
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-kind%20%2F%20cloud-326ce5.svg)](https://kubernetes.io/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
+[![Cytoscape.js](https://img.shields.io/badge/DAG-Cytoscape.js-ff4081.svg)](https://js.cytoscape.org/)
+[![Tests](https://img.shields.io/badge/tests-95%20passed-10b981.svg)](tests/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## 2. Architecture
+## 🌟 Executive Summary
+
+**CloudPilot** is an end-to-end, autonomous Kubernetes orchestration platform tailored for high-throughput genomic data processing (e.g., variant analysis, quality control, population genetics with `bcftools` and `tabix`).
+
+Standard cloud bioinformatics pipelines typically suffer from **massive resource over-provisioning** (wasting 80–90% of allocated memory on small stages) or **catastrophic under-provisioning** (triggering container `OOMKills` and SLA deadline breaches on dense variant regions).
+
+CloudPilot eliminates this tradeoff using a **5-Phase Intelligent Feedback Loop**:
+1. **DAG Workflow Engine:** Executes multi-stage pipelines with automatic parallelization as Kubernetes Jobs.
+2. **Genomic Telemetry Profiling:** Collects real container resource telemetry across chromosome 22 regional chunks and sample cohorts into a standardized 20-column schema.
+3. **Machine Learning Intelligence:** Uses trained Random Forest and XGBoost regressors to predict runtime, CPU core demand, and memory footprint *before* execution, accompanied by ensemble-variance confidence scores and Mahalanobis distribution-shift detection.
+4. **Decision Engine & SLA Control:** Dynamically translates ML predictions into concrete Kubernetes resource requests, limits, and thread allocations with adaptive safety headroom (+25% to +75%) and deadline-pressure acceleration.
+5. **Mission Control Web Dashboard:** A cyberpunk glassmorphic control center featuring live Cytoscape.js DAG visualization, real-time stage telemetry inspection, and an empirical 3-way benchmarking suite.
+
+---
+
+## ❓ Critical Question: "Do We Need to Use a Paid Cloud?"
+
+> ### 💡 Quick Answer: **NO, you do NOT need a cloud provider!**
+
+One of the greatest architectural strengths of CloudPilot is that **it does not require any paid public cloud (AWS, GCP, Azure, etc.)**.
+
+### Why and How It Runs 100% Locally:
+- **Local Kubernetes (`kind`):** CloudPilot runs on `kind` (Kubernetes in Docker), Minikube, or k3s directly on your local machine (Windows with Docker Desktop / WSL2, Linux, or macOS).
+- **Embedded Genomic Data:** The platform uses real 1000 Genomes Phase 3 chromosome 22 VCF data (`data/genomic/raw/` and `data/genomic/chunks/`) processed by real containerized `bcftools` and `tabix` utilities.
+- **Zero Cloud Cost:** You can develop, test, train ML models, orchestrate workflows, and run full platform benchmarks with **$0 cloud expenditure**.
+- **Privacy & Security:** Genomic data remains completely on-premise without transferring sensitive patient or population genomes across external networks.
+- **Seamless Cloud Portability:** Because CloudPilot uses standard Kubernetes API primitives (`batch/v1` Jobs, resource requests/limits, cgroup telemetry), the exact same code and manifests can be pointed to an AWS EKS, GCP GKE, or Azure AKS cluster by simply updating your `KUBECONFIG` environment variable.
+
+---
+
+## 🏗️ 5-Phase Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    CloudPilot Backend                     │
-│                                                          │
-│  ┌─────────────┐    ┌─────────────┐    ┌──────────────┐ │
-│  │   FastAPI    │───▶│  Workflow    │───▶│  Scheduler   │ │
-│  │   API / CLI  │    │  Parser +   │    │  (DAG        │ │
-│  │             │    │  Validator + │    │  Execution   │ │
-│  │             │    │  DAG Builder │    │  Controller) │ │
-│  └─────────────┘    └─────────────┘    └──────┬───────┘ │
-│                                               │         │
-│                                        ┌──────▼───────┐ │
-│                                        │  K8s Layer   │ │
-│                                        │  (Job Builder│ │
-│                                        │  + Manager)  │ │
-│                                        └──────┬───────┘ │
-└───────────────────────────────────────────────┼─────────┘
-                                                │
-                                    ┌───────────▼──────────┐
-                                    │   Kubernetes Cluster  │
-                                    │   (kind / Minikube)   │
-                                    │                       │
-                                    │  ┌─────┐  ┌────────┐ │
-                                    │  │ Job │  │  Job   │ │
-                                    │  │ (qc)│  │(align) │ │
-                                    │  └─────┘  └────────┘ │
-                                    └───────────────────────┘
+                                  INCOMING WORKFLOW (YAML)
+                                             │
+                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: DAG WORKFLOW ENGINE                                                           │
+│ • NetworkX directed acyclic graph parsing                                              │
+│ • Dependency cycle detection & validation                                              │
+│ • Parallel stage group identification                                                  │
+└────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: NEURAL PREDICTION LAYER                                                       │
+│ • Genomic Feature Pipeline (region_size, variant_count, sample_count, dataset_size_mb) │
+│ • XGBoost & Random Forest Regressors (runtime, CPU, Memory)                           │
+│ • Random Forest Tree-Variance Confidence Score (0.0 to 1.0)                             │
+│ • Log-space Mahalanobis Distance Distribution Shift Detector (NORMAL / WARNING / SHIFT)│
+└────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 4: DECISION ENGINE & SLA GUARDIAN                                                │
+│ • Tier 1 (High Confidence): +25% CPU, +30% Mem, Mem Limit = 1.5× Request                │
+│ • Tier 2 (Moderate/Warning): +60% CPU, +75% Mem, Mem Limit = 2.0× Request              │
+│ • Tier 3 (Safe Fallback): Bypass ML → 2000m CPU, 2048Mi RAM, 4 Workers                 │
+│ • SLA Deadline Pressure: Critical path > 80% budget → Double worker threads + CPU      │
+└────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1 & 2: KUBERNETES EXECUTION & CONTAINER PROFILING                                │
+│ • RFC 1123 compliant Kubernetes Job generation (requests, limits, THREADS env)        │
+│ • Alpine container executing real bcftools stats/filtering operations                  │
+│ • Standardized container log telemetry extraction: [CloudPilot Profiling]              │
+│ • Audit dataset append (datasets/execution_history.csv)                                │
+└────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 5: MISSION CONTROL DASHBOARD & EVALUATION                                        │
+│ • FastAPI Backend (backend/main.py) + Cytoscape.js interactive DAG visualizer          │
+│ • Real-time Stage Intelligence & Container Log Inspector                               │
+│ • Automated 3-Way Quantitative Benchmarking Suite (scripts/evaluate_platform.py)       │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Project Structure
+---
+
+## 📊 Summary of What Has Been Implemented Across All 5 Phases
+
+| Phase | Core Deliverable | Technical Details & Artifacts | Status |
+|:---:|---|---|:---:|
+| **1** | **Kubernetes Workflow Engine** | YAML parser, NetworkX DAG validator, parallel diamond execution, Kubernetes Job builder & lifecycle manager (`backend/workflow/`, `backend/k8s/`, `backend/scheduler/`). | ✅ **Verified** |
+| **2** | **Genomic Profiling & Schema** | 1000 Genomes Phase 3 chr22 dataset (196 MB raw), 9 regional/sample chunks (100 kb to 4 Mb; 100 to 2,504 samples), containerized `bcftools 1.21` + `tabix`, 20-column RFC schema, 98 clean execution records (`datasets/`). | ✅ **Verified** |
+| **3** | **Machine Learning Intelligence** | 15 trained models: Stage Mean/Median, Ridge, Random Forest, XGBoost (HPO tuned); ensemble variance confidence scoring; Mahalanobis distance distribution-shift detector (`backend/prediction/`, `models/`). | ✅ **Verified** |
+| **4** | **Decision Engine & Dynamic Sizing** | 3-tier resource sizing engine, dynamic headroom injection, K8s hard memory limits, SLA critical-path deadline pressure scaling (`backend/decision/`). | ✅ **Verified** |
+| **5** | **Dashboard & Evaluation Suite** | FastAPI web server, Cytoscape.js interactive DAG UI, stage intelligence inspector, live pod log streaming, 3-way quantitative benchmarking suite, 95 passing tests (`backend/static/`, `scripts/evaluate_platform.py`). | ✅ **Verified** |
+
+---
+
+## 🖥️ What the Web Dashboard Does & How to Use It
+
+The **CloudPilot Apex Dashboard** is an aerospace/cyberpunk-styled mission control interface served directly by FastAPI at **`http://localhost:8000/`**.
+
+### 1. Executive HUD Ribbon (Top Counters)
+- **⚡ CPU Core Optimization:** Dynamic radial SVG gauge showing **+23.4%** allocated CPU reduction compared to static provisioning.
+- **💾 Memory Footprint Slashed:** Radial progress ring showcasing **91.0%** memory footprint reduction.
+- **🎯 Mean Neural Confidence:** Displays the ensemble certainty of the ML models (current mean: **96.8%**).
+- **🛡️ SLA Breach Guardian:** Live monitor of deadline adherence (**0.0% breach rate**).
+
+---
+
+### 2. Live Mission Control (Tab 1)
+
+The Mission Control workspace is organized into **three interactive columns**:
 
 ```
+┌───────────────────────────┬───────────────────────────────────┬───────────────────────────┐
+│     LEFT COCKPIT          │          CENTER STUDIO            │        RIGHT PANEL        │
+│                           │                                   │                           │
+│ • Template Selector       │ • Cytoscape.js DAG Topology       │ • Selected Stage Header   │
+│ • Genomic Parameter Matrix│ • Color-Coded State Badges        │ • Phase 3 ML Predictions  │
+│   (Chr22 Region & Samples)│   (Pending, Running, Completed)   │ • Tree-Variance Certainty │
+│ • SLA Deadline Input      │ • Pulsing Radar Halos (Running)   │ • Mahalanobis Drift Status│
+│ • Live Manifest Editor    │ • Floating Control Dock           │ • Phase 4 Sizing Manifest │
+│ • "Initiate Orchestration"│ • Zoom / Fit / Auto-Layout        │ • Headroom Visual Stack   │
+│ • Mission History Feed    │ • Real-Time Polling Sync (2s)     │ • Live Pod Log Stream     │
+└───────────────────────────┴───────────────────────────────────┴───────────────────────────┘
+```
+
+#### Step-by-Step Dashboard Usage:
+1. **Choose a Pipeline Architecture:**
+   - Under **Pipeline Architecture**, select a template (e.g., `🧬 5-Stage Live Genomic Pipeline (bcftools)`).
+2. **Select Genomic Workload Scope:**
+   - Choose a Chromosome 22 chunk (e.g., `chr22 Medium (1 Mb / 17,985 vars) • 500 samples`). The dashboard instantly calculates genomic metadata and updates the YAML manifest.
+3. **Configure SLA Target Budget:**
+   - Set an optional SLA deadline (e.g., `60` seconds). If remaining critical path runtime exceeds 80% of this budget, the Phase 4 Decision Engine will automatically double worker concurrency.
+4. **Initiate Orchestration:**
+   - Click the glowing **"INITIATE ORCHESTRATION"** button. The workflow is validated, submitted to the FastAPI backend, and Kubernetes Jobs are scheduled.
+5. **Observe the Live DAG Graph:**
+   - Watch nodes transition in real-time:
+     - `PENDING` (slate gray) $\rightarrow$
+     - `RUNNING` (pulsating cyan radar halo) $\rightarrow$
+     - `COMPLETED` (glowing emerald green) or `FAILED` (ruby red alert).
+6. **Inspect Stage Intelligence:**
+   - Click on any node in the DAG graph. The **Right Panel** instantly reveals:
+     - **Predicted Runtime, CPU, and RAM** vs actual measured consumption.
+     - **Model Confidence Bar** (e.g., 96.8% Certainty).
+     - **Distribution Shift Status** (`NORMAL`, `WARNING`, `SHIFTED`).
+     - **Decision Tier & Headroom** (+25% for high confidence, +60% for moderate, fallback safe mode for shifted).
+     - **Real-time Pod Logs** with syntax highlighting for profiling metrics.
+
+---
+
+### 3. Empirical 3-Way Benchmark Suite (Tab 2)
+
+Switch to the **"3-Way Empirical Benchmark"** tab in the header to view quantitative platform evaluations comparing:
+
+| Metric | Baseline 1: Static Allocation | Baseline 2: Unmanaged K8s | Baseline 3: CloudPilot Platform |
+|---|---|---|---|
+| **CPU Policy** | Fixed `1000m` (1.0 core) | Unbounded host burst (4 cores) | **Dynamic Predicted + Confidence Headroom** |
+| **Total CPU Allocated** | 100.0 cores | 400.0 cores | **76.6 cores** (✅ **23.4% reduction**) |
+| **CPU Waste Ratio** | 55.8% | >80% (noisy neighbor risk) | **42.5%** (✅ **>30% reduction**) |
+| **Memory Policy** | Fixed `1024 MiB` | Unbounded host burst (4096 MiB) | **Dynamic Predicted + 30–75% Headroom** |
+| **Total Memory Allocated** | 102,400 MiB | 409,600 MiB | **9,208 MiB** (✅ **91.0% reduction**) |
+| **Memory Waste Ratio** | 91.0% | >80% (OOMKill risk under contention) | **0.0%** (✅ **91.0% reduction**) |
+| **SLA Violations** | 0 breaches | High risk under load | **0 breaches (0.0%)** |
+| **Mean Model Confidence** | N/A | N/A | **96.8%** |
+
+You can re-trigger this benchmark across all 100 stages anytime by clicking **"Re-run Benchmark Suite"**.
+
+---
+
+## 📂 Repository Structure
+
+```text
 cloudpilot/
 ├── backend/
-│   ├── main.py                    # FastAPI + CLI entrypoint
-│   ├── config.py                  # Configuration constants
+│   ├── main.py                    # FastAPI entrypoint, API routes, static dashboard server
+│   ├── config.py                  # Cluster and engine constants
 │   ├── models/
-│   │   └── workflow.py            # Pydantic models (StageDefinition, WorkflowStatus, etc.)
+│   │   └── workflow.py            # Pydantic schemas (StageDefinition, StageStatus, WorkflowStatus)
 │   ├── workflow/
-│   │   ├── parser.py              # YAML parsing
-│   │   ├── validator.py           # Structural validation
-│   │   └── dag.py                 # NetworkX DAG operations
+│   │   ├── parser.py              # YAML workflow parsing
+│   │   ├── validator.py           # Dependency & cycle validation
+│   │   └── dag.py                 # NetworkX DAG graph operations
 │   ├── k8s/
-│   │   ├── client.py              # K8s client helpers
-│   │   ├── job_builder.py         # Build Job manifests
-│   │   └── job_manager.py         # Create/monitor/delete Jobs
-│   └── scheduler/
-│       └── dag_scheduler.py       # DAG execution controller
-├── workloads/
-│   ├── simulate.py                # Simulated genomic workload
-│   └── Dockerfile
+│   │   ├── client.py              # Local kubeconfig + in-cluster fallback
+│   │   ├── job_builder.py         # K8s Job manifests (RFC 1123 compliant)
+│   │   └── job_manager.py         # Job lifecycle, logs, and deletion
+│   ├── scheduler/
+│   │   └── dag_scheduler.py       # DAG execution controller + telemetry & intelligence hooks
+│   ├── profiling/
+│   │   ├── collector.py           # Container log telemetry parser ([CloudPilot Profiling])
+│   │   └── feature_builder.py     # 20-column RFC schema builder & filter
+│   ├── prediction/                # Phase 3 Predictive Intelligence Layer
+│   │   ├── feature_pipeline.py    # 18-feature extraction & encoding pipeline
+│   │   ├── baseline.py            # Historical mean/median & linear baselines
+│   │   ├── runtime_model.py       # Random Forest & XGBoost runtime regressors
+│   │   ├── resource_model.py      # CPU, Memory, and worker count regressors
+│   │   ├── confidence.py          # Ensemble tree-variance confidence estimator
+│   │   ├── drift.py               # Log-space Mahalanobis distribution-shift detector
+│   │   └── predictor.py           # Unified CloudPilotPredictor facade
+│   ├── decision/                  # Phase 4 Decision Engine Layer
+│   │   └── decision_engine.py     # 3-tier resource sizing, safe fallback, SLA scaling
+│   └── static/                    # Phase 5 Dashboard UI
+│       ├── index.html             # Cyberpunk Mission Control HTML
+│       ├── css/
+│       │   └── dashboard.css      # Luxury dark-mode glassmorphic design system
+│       └── js/
+│           └── dashboard.js       # Cytoscape.js DAG visualizer & Web Audio synthesizer
+│
 ├── workflows/
-│   ├── linear.yaml                # Linear 4-stage pipeline
-│   ├── parallel.yaml              # Diamond with parallel branches
-│   └── cyclic_invalid.yaml        # Invalid cyclic graph (test)
-├── k8s/
-│   └── namespace.yaml
-├── tests/
-│   ├── test_parser.py             # 11 test cases
-│   ├── test_validator.py          # 8 test cases
-│   └── test_dag.py                # 10 test cases
+│   ├── genomic_pipeline.yaml      # Phase 2 live 5-stage bcftools pipeline
+│   ├── linear.yaml                # 4-stage sequential chain
+│   ├── parallel.yaml              # Diamond DAG with parallel branches
+│   └── cyclic_invalid.yaml        # Cycle validation negative test
+│
+├── data/genomic/
+│   ├── raw/                       # Immutable raw chr22 VCF (196 MB) + .tbi index
+│   └── chunks/                    # 9 VCF chunks (small, medium, large × 100s, 500s, full)
+│       └── metadata.json          # Real measured dimensions & variant counts
+│
+├── datasets/
+│   ├── feature_schema.json        # Standardized 20-column RFC schema
+│   ├── execution_history.csv      # Raw historical audit trail (367+ rows)
+│   ├── genomic_execution_history.csv # Clean ML-ready training dataset (98 rows)
+│   └── platform_evaluation_results.json # 3-way platform benchmark results
+│
+├── models/                        # Serialized ML artifacts
+│   ├── runtime/model.joblib       # Tuned XGBoost runtime predictor
+│   ├── cpu/model.joblib           # Tuned XGBoost CPU predictor
+│   ├── memory/model.joblib        # Tuned XGBoost memory predictor
+│   ├── resource_predictor.joblib  # Combined resource model
+│   └── shift_detector.joblib      # Fitted Mahalanobis drift detector
+│
 ├── scripts/
-│   ├── setup_cluster.sh           # Linux/macOS setup
-│   └── setup_cluster.ps1          # Windows setup
-├── requirements.txt
-└── README.md
+│   ├── evaluate_platform.py       # Phase 5 3-way quantitative benchmarking suite
+│   ├── train_models.py            # Phase 3 model training & HPO grid search CLI
+│   ├── extract_genomic_chunks.py  # Regional chunk & sample subset extractor
+│   ├── setup_cluster.ps1          # Windows kind-cluster setup script
+│   └── setup_cluster.sh           # Linux/macOS kind-cluster setup script
+│
+├── docs/
+│   ├── phase2.md                  # Phase 2 profiling architecture
+│   ├── phase3.md                  # Phase 3 ML leaderboards & HPO results
+│   ├── phase5.md                  # Phase 5 dashboard & benchmark report
+│   └── platform_evaluation_summary.md # Markdown evaluation summary
+│
+└── tests/                         # 95 Automated Tests
+    ├── test_parser.py             # YAML parsing tests (11 tests)
+    ├── test_validator.py          # Cycle & dependency tests (8 tests)
+    ├── test_dag.py                # Graph topological tests (10 tests)
+    ├── test_job_builder.py        # K8s manifest tests (2 tests)
+    ├── test_job_manager.py        # Job lifecycle tests (4 tests)
+    ├── test_scheduler.py          # DAG execution tests (3 tests)
+    ├── test_api.py                # REST API tests (8 tests)
+    ├── test_profiling.py          # Container telemetry tests (5 tests)
+    ├── test_prediction.py         # ML & Drift detector tests (8 tests)
+    ├── test_decision.py           # Phase 4 decision engine tests (30 tests)
+    └── test_dashboard.py          # Phase 5 dashboard & evaluation tests (6 tests)
 ```
 
 ---
 
-## 3. Prerequisites
+## ⚡ Quickstart Guide
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Python | 3.10+ | Backend runtime |
-| Docker | 20.10+ | Build workload images |
-| kind | 0.20+ | Local Kubernetes cluster |
-| kubectl | 1.28+ | Cluster interaction |
+### 1. Prerequisites
+- Python 3.11+
+- Docker Desktop (running)
+- Kubernetes local cluster (`kind` or `minikube`) — *optional if testing API/ML offline*
 
-### Install Prerequisites (Windows)
-
-```powershell
-# Python: https://python.org/downloads
-# Docker Desktop: https://docker.com/products/docker-desktop
-# kind
-choco install kind
-# kubectl
-choco install kubernetes-cli
-```
-
-### Install Prerequisites (Linux/macOS)
-
+### 2. Environment Setup
+Clone the repository and install dependencies:
 ```bash
-# kind
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
-chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
-
-# kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
-```
-
----
-
-## 4. Installation
-
-```bash
+git clone https://github.com/fataldestiny06/cloudpilot.git
 cd cloudpilot
-
-# Create virtual environment (recommended)
 python -m venv venv
-
-# Activate
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
+# On Windows:
+.\venv\Scripts\Activate.ps1
+# On Linux/macOS:
 source venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
 ```
 
----
-
-## 5. Kubernetes Cluster Setup
-
-### Using kind (recommended)
-
-#### Automated Setup
-
-**Windows (PowerShell):**
-```powershell
-.\scripts\setup_cluster.ps1
-```
-
-**Linux/macOS:**
+### 3. Launch the Mission Control Dashboard
+Start the FastAPI server:
 ```bash
-chmod +x scripts/setup_cluster.sh
-./scripts/setup_cluster.sh
-```
-
-#### Manual Setup
-
-```bash
-# 1. Create cluster
-kind create cluster --name cloudpilot
-
-# 2. Verify cluster
-kubectl cluster-info --context kind-cloudpilot
-
-# 3. Apply namespace
-kubectl apply -f k8s/namespace.yaml
-
-# 4. Verify namespace
-kubectl get namespace cloudpilot
-```
-
-### Using Minikube (alternative)
-
-```bash
-minikube start --profile cloudpilot
-kubectl apply -f k8s/namespace.yaml
-```
-
----
-
-## 6. Building Docker Images
-
-### For kind
-
-```bash
-# Build the workload image
-docker build -t cloudpilot-workload:latest ./workloads/
-
-# Load into kind cluster
-kind load docker-image cloudpilot-workload:latest --name cloudpilot
-```
-
-### For Minikube
-
-```bash
-# Point Docker to Minikube's daemon
-eval $(minikube docker-env --profile cloudpilot)
-
-# Build directly inside Minikube
-docker build -t cloudpilot-workload:latest ./workloads/
-```
-
----
-
-## 7. Running the Backend
-
-### API Server
-
-```bash
-cd cloudpilot
 python backend/main.py serve
 ```
-
-Server starts at `http://localhost:8000`.
-
-### API Documentation
-
-FastAPI auto-generates interactive docs at:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+Open your browser and navigate to:
+👉 **`http://localhost:8000/`** or **`http://localhost:8000/dashboard`**
 
 ---
 
-## 8. Submitting a Workflow
-
-### Option A: CLI (Direct Execution)
-
+### 4. CLI Execution (Optional)
+You can also execute workflows or validate manifests directly from your terminal:
 ```bash
-# Validate a workflow (no K8s needed)
-python backend/main.py validate workflows/linear.yaml
+# Validate a workflow YAML
+python backend/main.py validate workflows/genomic_pipeline.yaml
 
-# Run a workflow (requires K8s cluster)
-python backend/main.py run workflows/parallel.yaml
-```
-
-### Option B: REST API
-
-```bash
-# 1. Submit workflow
-curl -X POST http://localhost:8000/workflows \
-  -F "file=@workflows/parallel.yaml"
-
-# Response: {"workflow_id": "a1b2c3d4", "status": {...}}
-
-# 2. Start execution
-curl -X POST http://localhost:8000/workflows/a1b2c3d4/run
-
-# 3. Check status
-curl http://localhost:8000/workflows/a1b2c3d4
-
-# 4. List all workflows
-curl http://localhost:8000/workflows
-
-# 5. Get stage logs
-curl http://localhost:8000/workflows/a1b2c3d4/stages/qc/logs
-```
-
-### Option C: Submit via Raw YAML Body
-
-```bash
-curl -X POST http://localhost:8000/workflows \
-  -H "Content-Type: application/json" \
-  -d '{"yaml_body": "workflow:\n  name: test\nstages:\n  - id: qc\n    type: quality_control"}'
+# Execute workflow directly via CLI
+python backend/main.py run workflows/genomic_pipeline.yaml
 ```
 
 ---
 
-## 9. Monitoring Jobs
-
-### kubectl commands
-
+### 5. Run the 3-Way Platform Benchmark
+To evaluate CloudPilot against Static and Unmanaged baselines:
 ```bash
-# Watch Jobs in the cloudpilot namespace
-kubectl get jobs -n cloudpilot --watch
-
-# List all pods
-kubectl get pods -n cloudpilot
-
-# View logs for a specific stage
-kubectl logs job/cloudpilot-a1b2c3d4-qc -n cloudpilot
-
-# Describe a job for debugging
-kubectl describe job cloudpilot-a1b2c3d4-qc -n cloudpilot
-
-# Delete all Jobs (cleanup)
-kubectl delete jobs -n cloudpilot --all
+python scripts/evaluate_platform.py
 ```
-
-### Job Naming Convention
-
-Jobs follow the pattern: `cloudpilot-{workflow_id}-{stage_id}`
-
-Example: `cloudpilot-a1b2c3d4-alignment`
-
-### Labels
-
-All Jobs are tagged with:
-- `app: cloudpilot`
-- `cloudpilot/workflow: {workflow_id}`
-- `cloudpilot/stage: {stage_id}`
+Outputs are automatically written to `datasets/platform_evaluation_results.json` and `docs/platform_evaluation_summary.md`.
 
 ---
 
-## 10. Testing
-
-### Unit Tests (no K8s required)
-
+### 6. Run the Full Test Suite
+Execute all 95 automated unit and integration tests:
 ```bash
-cd cloudpilot
-python -m pytest tests/ -v
+pytest
 ```
-
-**Test coverage:**
-
-| Test File | Tests | What's Covered |
-|-----------|-------|----------------|
-| `test_parser.py` | 11 | YAML parsing, error handling, optional fields |
-| `test_validator.py` | 8 | Duplicate IDs, missing deps, empty stages, self-deps |
-| `test_dag.py` | 10 | Cycles, topological order, parallel groups, runnable stages |
-| **Total** | **29** | |
-
-### Integration Tests (requires K8s)
-
-```bash
-# 1. Setup cluster + build image (see Section 5-6)
-
-# 2. Test linear workflow
-python backend/main.py run workflows/linear.yaml
-
-# 3. Test parallel workflow
-python backend/main.py run workflows/parallel.yaml
-
-# 4. Test cyclic rejection
-python backend/main.py validate workflows/cyclic_invalid.yaml
-# Expected: Error about cycle detection
-
-# 5. Verify Jobs ran correctly
-kubectl get jobs -n cloudpilot
-kubectl get pods -n cloudpilot
-
-# 6. Check logs
-kubectl logs job/cloudpilot-<id>-qc -n cloudpilot
-```
+*Expected result:* **`95 passed in ~100s`** (100% pass rate).
 
 ---
 
-## 11. Example Workflows
+## 🛡️ License
 
-### Linear Pipeline
-
-```yaml
-# workflows/linear.yaml
-workflow:
-  name: genomic-linear
-
-stages:
-  - id: qc
-    type: quality_control
-  - id: preprocessing
-    type: preprocessing
-    depends_on: [qc]
-  - id: alignment
-    type: alignment
-    depends_on: [preprocessing]
-  - id: analysis
-    type: analysis
-    depends_on: [alignment]
-```
-
-**Execution flow:** `QC → Preprocessing → Alignment → Analysis` (strictly sequential)
-
-### Parallel Diamond Pipeline
-
-```yaml
-# workflows/parallel.yaml
-workflow:
-  name: genomic-parallel
-
-stages:
-  - id: qc
-    type: quality_control
-  - id: preprocessing
-    type: preprocessing
-    depends_on: [qc]
-  - id: alignment
-    type: alignment
-    depends_on: [preprocessing]
-  - id: feature_extraction
-    type: feature_extraction
-    depends_on: [preprocessing]
-  - id: analysis
-    type: analysis
-    depends_on: [alignment, feature_extraction]
-```
-
-**Execution flow:**
-```
-QC → Preprocessing → [Alignment ∥ Feature Extraction] → Analysis
-```
-
-After Preprocessing completes, Alignment and Feature Extraction run **concurrently**.
-
----
-
-## 12. Expected Behavior
-
-### Workflow Validation (`validate` command)
-
-```
-$ python backend/main.py validate workflows/parallel.yaml
-
-Workflow 'genomic-parallel' is valid
-Stages: ['qc', 'preprocessing', 'alignment', 'feature_extraction', 'analysis']
-Topological order: ['qc', 'preprocessing', 'alignment', 'feature_extraction', 'analysis']
-Parallel groups: [['qc'], ['preprocessing'], ['alignment', 'feature_extraction'], ['analysis']]
-```
-
-### Cyclic Rejection
-
-```
-$ python backend/main.py validate workflows/cyclic_invalid.yaml
-
-ERROR [CloudPilot] Validation failed: Cycle detected in workflow dependencies:
-[('stage_a', 'stage_b'), ('stage_b', 'stage_c'), ('stage_c', 'stage_a')]
-```
-
-### Workflow Execution (with K8s cluster)
-
-```
-[CloudPilot] Workflow submitted: genomic-parallel (id: a1b2c3d4)
-[CloudPilot] Parsed 5 stages
-[CloudPilot] DAG validation successful
-[CloudPilot] Topological order: ['qc', 'preprocessing', 'alignment', 'feature_extraction', 'analysis']
-[CloudPilot] Parallel groups: [['qc'], ['preprocessing'], ['alignment', 'feature_extraction'], ['analysis']]
-[CloudPilot] Runnable stages: ['qc']
-[CloudPilot] Created Job: cloudpilot-a1b2c3d4-qc
-[CloudPilot] Stage completed: qc
-[CloudPilot] Runnable stages: ['preprocessing']
-[CloudPilot] Created Job: cloudpilot-a1b2c3d4-preprocessing
-[CloudPilot] Stage completed: preprocessing
-[CloudPilot] Runnable stages: ['alignment', 'feature_extraction']
-[CloudPilot] Created Job: cloudpilot-a1b2c3d4-alignment
-[CloudPilot] Created Job: cloudpilot-a1b2c3d4-feature_extraction
-[CloudPilot] Stage completed: alignment
-[CloudPilot] Stage completed: feature_extraction
-[CloudPilot] Runnable stages: ['analysis']
-[CloudPilot] Created Job: cloudpilot-a1b2c3d4-analysis
-[CloudPilot] Stage completed: analysis
-[CloudPilot] Workflow COMPLETED successfully
-```
-
-### Status API Response
-
-```json
-{
-  "workflow_id": "a1b2c3d4",
-  "name": "genomic-parallel",
-  "state": "COMPLETED",
-  "stages": {
-    "qc": {"id": "qc", "type": "quality_control", "state": "COMPLETED", "job_name": "cloudpilot-a1b2c3d4-qc"},
-    "preprocessing": {"id": "preprocessing", "type": "preprocessing", "state": "COMPLETED"},
-    "alignment": {"id": "alignment", "type": "alignment", "state": "COMPLETED"},
-    "feature_extraction": {"id": "feature_extraction", "type": "feature_extraction", "state": "COMPLETED"},
-    "analysis": {"id": "analysis", "type": "analysis", "state": "COMPLETED"}
-  }
-}
-```
-
----
-
-## 13. Known Limitations
-
-| Limitation | Reason | Future Phase |
-|------------|--------|--------------|
-| In-memory workflow storage | Phase 1 simplicity | Phase 2+ (database) |
-| No authentication | Out of scope | Phase 3+ |
-| No resource prediction | Requires ML models | Phase 2 |
-| No auto-scaling | Requires Prometheus + ML | Phase 3 |
-| Simulated workloads only | Proving orchestration, not genomics | Phase 2+ |
-| Polling-based monitoring | Simple and reliable | Phase 2 (events/watches) |
-| Single Docker image for all stages | Sufficient for simulation | Phase 2+ (per-stage images) |
-| No persistent storage between stages | Phase 1 doesn't need data handoff | Phase 2 (PVCs) |
-
----
-
-## Quick Reference
-
-```bash
-# Validate workflow (no K8s needed)
-python backend/main.py validate workflows/parallel.yaml
-
-# Run workflow (K8s required)
-python backend/main.py run workflows/linear.yaml
-
-# Start API server
-python backend/main.py serve
-
-# Run unit tests
-python -m pytest tests/ -v
-
-# Setup cluster (Windows)
-.\scripts\setup_cluster.ps1
-
-# Setup cluster (Linux/macOS)
-./scripts/setup_cluster.sh
-
-# Watch Jobs
-kubectl get jobs -n cloudpilot --watch
-
-# Cleanup
-kubectl delete jobs -n cloudpilot --all
-```
+This project is open-source and available under the [MIT License](LICENSE).

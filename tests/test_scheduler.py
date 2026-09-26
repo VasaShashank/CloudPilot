@@ -13,7 +13,10 @@ def test_scheduler_linear_execution():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
+<<<<<<< HEAD
+=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
+>>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep") as mock_sleep:
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm
@@ -52,7 +55,10 @@ def test_scheduler_parallel_branches():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
+<<<<<<< HEAD
+=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
+>>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep"):
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm
@@ -97,7 +103,10 @@ def test_scheduler_failure_cascades_to_downstream():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
+<<<<<<< HEAD
+=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
+>>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep"):
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm

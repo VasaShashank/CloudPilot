@@ -66,15 +66,24 @@ class CloudPilotPredictor:
             "cv_folds": n_splits,
             "targets": {
                 "runtime_seconds": {
+                    "untuned_best_model": self.runtime_predictor.untuned_best_model_name_,
                     "best_model": self.runtime_predictor.best_model_name_,
+                    "best_params": self.runtime_predictor.best_params_,
+                    "hyperparameter_optimization": self.runtime_predictor.hpo_summary_,
                     "models": rt_metrics,
                 },
                 "actual_cpu": {
+                    "untuned_best_model": self.resource_predictor.cpu_model.untuned_best_model_name_,
                     "best_model": self.resource_predictor.cpu_model.best_model_name_,
+                    "best_params": self.resource_predictor.cpu_model.best_params_,
+                    "hyperparameter_optimization": self.resource_predictor.cpu_model.hpo_summary_,
                     "models": res_metrics["actual_cpu"],
                 },
                 "actual_memory_mb": {
+                    "untuned_best_model": self.resource_predictor.memory_model.untuned_best_model_name_,
                     "best_model": self.resource_predictor.memory_model.best_model_name_,
+                    "best_params": self.resource_predictor.memory_model.best_params_,
+                    "hyperparameter_optimization": self.resource_predictor.memory_model.hpo_summary_,
                     "models": res_metrics["actual_memory_mb"],
                 },
             },

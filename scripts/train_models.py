@@ -2,22 +2,26 @@
 """
 scripts/train_models.py
 
-Trains, cross-validates, benchmarks, and serializes all Phase 3 Predictive Intelligence models:
+Trains, cross-validates, benchmarks, performs Hyperparameter Optimization (HPO) on the best model,
+and serializes all Phase 3 Predictive Intelligence models:
 1. Stage Mean Baseline
 2. Stage Median Baseline
 3. Ridge Regression (Linear)
-4. Random Forest Regressor
-5. XGBoost Regressor
+4. Random Forest Regressor (Default)
+5. XGBoost Regressor (Default)
+6. Hyperparameter-Optimized Best Model (Tuned via 5-Fold CV Grid Search)
 + Distribution-Shift Detector (Domain Boundaries + Mahalanobis Distance)
 
 Exports comprehensive CSV result files (compatible with Excel & GitHub):
 - datasets/model_evaluation_results.csv
+- datasets/hyperparameter_optimization_results.csv
 - datasets/model_predictions_comparison.csv
 - datasets/distribution_shift_test_results.csv
 (Also saved inside models/)
 """
 
 import csv
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -31,8 +35,9 @@ MODEL_DISPLAY_NAMES = {
     "stage_mean": "Stage Mean Baseline",
     "stage_median": "Stage Median Baseline",
     "ridge_regression": "Ridge Regression (Linear)",
-    "random_forest": "Random Forest Regressor",
-    "xgboost": "XGBoost Regressor",
+    "random_forest": "Random Forest (Default)",
+    "xgboost": "XGBoost (Default)",
+    "tuned_best": "Tuned Best Model (HPO)",
 }
 
 MODEL_TIERS = {
@@ -41,6 +46,7 @@ MODEL_TIERS = {
     "ridge_regression": "2_Linear_Regression",
     "random_forest": "3_Ensemble_Bagging_ML",
     "xgboost": "3_Ensemble_Boosting_ML",
+    "tuned_best": "4_Hyperparameter_Optimized",
 }
 
 TARGET_UNITS = {
@@ -52,29 +58,64 @@ TARGET_UNITS = {
 
 def print_target_leaderboard(target_name: str, target_info: dict):
     unit = TARGET_UNITS.get(target_name, "")
+    untuned_best = target_info.get("untuned_best_model", "")
     best_model = target_info["best_model"]
     models_dict = target_info["models"]
+    hpo = target_info.get("hyperparameter_optimization", {})
 
-    print(f"\n{'=' * 82}")
-    print(f"Target: {target_name} (5-Fold Cross-Validation Benchmark)")
-    print(f"{'=' * 82}")
-    header = f"{'Model':<28} | {'MAE (' + unit + ')':>12} | {'RMSE (' + unit + ')':>12} | {'MAPE (%)':>10} | {'R2 Score':>9} | {'Status':<8}"
+    print(f"\n{'=' * 90}")
+    print(f"Target: {target_name} (5-Fold Cross-Validation + Hyperparameter Optimization)")
+    print(f"{'=' * 90}")
+    header = (
+        f"{'Model':<30} | {'MAE (' + unit + ')':>12} | {'RMSE (' + unit + ')':>12} | "
+        f"{'MAPE (%)':>10} | {'R2 Score':>9} | {'Status':<12}"
+    )
     print(header)
-    print("-" * 82)
+    print("-" * 90)
 
-    for m_key in ["stage_mean", "stage_median", "ridge_regression", "random_forest", "xgboost"]:
+    for m_key in [
+        "stage_mean",
+        "stage_median",
+        "ridge_regression",
+        "random_forest",
+        "xgboost",
+        "tuned_best",
+    ]:
         if m_key not in models_dict:
             continue
         m = models_dict[m_key]
-        disp = MODEL_DISPLAY_NAMES.get(m_key, m_key)
-        status = "* BEST" if m_key == best_model else ""
+        if m_key == "tuned_best":
+            fam = hpo.get("base_model_family", untuned_best)
+            disp = f"Tuned {fam.replace('_', ' ').title()} (HPO)"
+        else:
+            disp = MODEL_DISPLAY_NAMES.get(m_key, m_key)
+
+        if m_key == best_model:
+            status = "* HPO BEST"
+        elif m_key == untuned_best:
+            status = "Untuned Win"
+        else:
+            status = ""
+
         print(
-            f"{disp:<28} | {m['mae']:>12.4f} | {m['rmse']:>12.4f} | {m['mape_pct']:>9.2f}% | {m['r2']:>9.4f} | {status:<8}"
+            f"{disp:<30} | {m['mae']:>12.4f} | {m['rmse']:>12.4f} | "
+            f"{m['mape_pct']:>9.2f}% | {m['r2']:>9.4f} | {status:<12}"
         )
+
+    if hpo:
+        print("-" * 90)
+        print(
+            f"  [HPO Summary] Base Winner: {hpo['base_model_family']} | "
+            f"Grid Trials: {hpo['trials_evaluated']} | "
+            f"MAE Improved: -{hpo['mae_improvement_pct']:.2f}% | "
+            f"RMSE Improved: -{hpo['rmse_improvement_pct']:.2f}% | "
+            f"R2 Gain: +{hpo['r2_gain']:.4f}"
+        )
+        print(f"  [Best Hyperparameters] {json.dumps(hpo['best_params'])}")
 
 
 def export_evaluation_csv(summary: dict, out_path: Path):
-    """Save 5-Fold Cross-Validation metrics for all 15 trained models to CSV."""
+    """Save 5-Fold Cross-Validation metrics for all models (including HPO tuned_best) to CSV."""
     fieldnames = [
         "target",
         "unit",
@@ -88,6 +129,7 @@ def export_evaluation_csv(summary: dict, out_path: Path):
         "mape_pct",
         "r2_score",
         "is_best",
+        "best_hyperparameters",
     ]
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
@@ -95,17 +137,33 @@ def export_evaluation_csv(summary: dict, out_path: Path):
         writer.writeheader()
         for target_name, target_info in summary["targets"].items():
             best_key = target_info["best_model"]
+            untuned_win = target_info.get("untuned_best_model", "")
+            hpo = target_info.get("hyperparameter_optimization", {})
             unit = TARGET_UNITS.get(target_name, "")
-            for m_key in ["stage_mean", "stage_median", "ridge_regression", "random_forest", "xgboost"]:
+            for m_key in [
+                "stage_mean",
+                "stage_median",
+                "ridge_regression",
+                "random_forest",
+                "xgboost",
+                "tuned_best",
+            ]:
                 if m_key not in target_info["models"]:
                     continue
                 metrics = target_info["models"][m_key]
+                if m_key == "tuned_best":
+                    fam = hpo.get("base_model_family", untuned_win)
+                    m_name = f"Tuned {fam.replace('_', ' ').title()} (HPO)"
+                    params_str = json.dumps(hpo.get("best_params", {}))
+                else:
+                    m_name = MODEL_DISPLAY_NAMES.get(m_key, m_key)
+                    params_str = "default"
                 writer.writerow(
                     {
                         "target": target_name,
                         "unit": unit,
                         "model_key": m_key,
-                        "model_name": MODEL_DISPLAY_NAMES.get(m_key, m_key),
+                        "model_name": m_name,
                         "model_tier": MODEL_TIERS.get(m_key, "ML"),
                         "cv_folds": summary["cv_folds"],
                         "dataset_rows": summary["dataset_rows"],
@@ -114,8 +172,61 @@ def export_evaluation_csv(summary: dict, out_path: Path):
                         "mape_pct": metrics["mape_pct"],
                         "r2_score": metrics["r2"],
                         "is_best": m_key == best_key,
+                        "best_hyperparameters": params_str,
                     }
                 )
+
+
+def export_hpo_csv(summary: dict, out_path: Path):
+    """Save dedicated Before vs After Hyperparameter Optimization comparison to CSV."""
+    fieldnames = [
+        "target",
+        "unit",
+        "selected_model_family",
+        "trials_evaluated",
+        "mae_before_hpo",
+        "mae_after_hpo",
+        "mae_improvement_pct",
+        "rmse_before_hpo",
+        "rmse_after_hpo",
+        "rmse_improvement_pct",
+        "mape_before_pct",
+        "mape_after_pct",
+        "r2_before_hpo",
+        "r2_after_hpo",
+        "r2_gain",
+        "best_hyperparameters",
+    ]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for target_name, target_info in summary["targets"].items():
+            hpo = target_info.get("hyperparameter_optimization", {})
+            if not hpo:
+                continue
+            before = hpo["before_hpo"]
+            after = hpo["after_hpo"]
+            writer.writerow(
+                {
+                    "target": target_name,
+                    "unit": TARGET_UNITS.get(target_name, ""),
+                    "selected_model_family": hpo["base_model_family"],
+                    "trials_evaluated": hpo["trials_evaluated"],
+                    "mae_before_hpo": before["mae"],
+                    "mae_after_hpo": after["mae"],
+                    "mae_improvement_pct": hpo["mae_improvement_pct"],
+                    "rmse_before_hpo": before["rmse"],
+                    "rmse_after_hpo": after["rmse"],
+                    "rmse_improvement_pct": hpo["rmse_improvement_pct"],
+                    "mape_before_pct": before["mape_pct"],
+                    "mape_after_pct": after["mape_pct"],
+                    "r2_before_hpo": before["r2"],
+                    "r2_after_hpo": after["r2"],
+                    "r2_gain": hpo["r2_gain"],
+                    "best_hyperparameters": json.dumps(hpo["best_params"]),
+                }
+            )
 
 
 def export_predictions_comparison_csv(predictor: CloudPilotPredictor, out_path: Path):
@@ -126,12 +237,15 @@ def export_predictions_comparison_csv(predictor: CloudPilotPredictor, out_path: 
     rt_ridge_preds = predictor.runtime_predictor.predict(X, model_name="ridge_regression")
     rt_rf_preds = predictor.runtime_predictor.predict(X, model_name="random_forest")
     rt_xgb_preds = predictor.runtime_predictor.predict(X, model_name="xgboost")
+    rt_tuned_preds = predictor.runtime_predictor.predict(X, model_name="tuned_best")
 
     cpu_rf_preds = predictor.resource_predictor.cpu_model.predict(X, model_name="random_forest")
     cpu_xgb_preds = predictor.resource_predictor.cpu_model.predict(X, model_name="xgboost")
+    cpu_tuned_preds = predictor.resource_predictor.cpu_model.predict(X, model_name="tuned_best")
 
     mem_rf_preds = predictor.resource_predictor.memory_model.predict(X, model_name="random_forest")
     mem_xgb_preds = predictor.resource_predictor.memory_model.predict(X, model_name="xgboost")
+    mem_tuned_preds = predictor.resource_predictor.memory_model.predict(X, model_name="tuned_best")
 
     fieldnames = [
         "workflow_id",
@@ -150,13 +264,16 @@ def export_predictions_comparison_csv(predictor: CloudPilotPredictor, out_path: 
         "pred_runtime_ridge_s",
         "pred_runtime_rf_s",
         "pred_runtime_xgb_s",
-        "runtime_error_rf_s",
+        "pred_runtime_tuned_best_s",
+        "runtime_error_tuned_s",
         "actual_cpu_cores",
         "pred_cpu_rf_cores",
         "pred_cpu_xgb_cores",
+        "pred_cpu_tuned_best_cores",
         "actual_memory_mb",
         "pred_memory_rf_mb",
         "pred_memory_xgb_mb",
+        "pred_memory_tuned_best_mb",
         "recommended_workers",
         "confidence_pct",
         "distribution_shift",
@@ -170,7 +287,7 @@ def export_predictions_comparison_csv(predictor: CloudPilotPredictor, out_path: 
         for i, row in enumerate(raw_rows):
             stage_pred = predictor.predict_stage(row)
             act_rt = float(row["runtime_seconds"])
-            rf_rt = round(float(rt_rf_preds[i]), 3)
+            tuned_rt = round(float(rt_tuned_preds[i]), 3)
 
             writer.writerow(
                 {
@@ -188,15 +305,18 @@ def export_predictions_comparison_csv(predictor: CloudPilotPredictor, out_path: 
                     "actual_runtime_s": round(act_rt, 3),
                     "pred_runtime_mean_s": round(float(rt_mean_preds[i]), 3),
                     "pred_runtime_ridge_s": round(float(rt_ridge_preds[i]), 3),
-                    "pred_runtime_rf_s": rf_rt,
+                    "pred_runtime_rf_s": round(float(rt_rf_preds[i]), 3),
                     "pred_runtime_xgb_s": round(float(rt_xgb_preds[i]), 3),
-                    "runtime_error_rf_s": round(abs(act_rt - rf_rt), 3),
+                    "pred_runtime_tuned_best_s": tuned_rt,
+                    "runtime_error_tuned_s": round(abs(act_rt - tuned_rt), 3),
                     "actual_cpu_cores": round(float(row["actual_cpu"]), 3),
                     "pred_cpu_rf_cores": round(float(cpu_rf_preds[i]), 3),
                     "pred_cpu_xgb_cores": round(float(cpu_xgb_preds[i]), 3),
+                    "pred_cpu_tuned_best_cores": round(float(cpu_tuned_preds[i]), 3),
                     "actual_memory_mb": round(float(row["actual_memory_mb"]), 2),
                     "pred_memory_rf_mb": round(float(mem_rf_preds[i]), 2),
                     "pred_memory_xgb_mb": round(float(mem_xgb_preds[i]), 2),
+                    "pred_memory_tuned_best_mb": round(float(mem_tuned_preds[i]), 2),
                     "recommended_workers": stage_pred["recommended_worker_count"],
                     "confidence_pct": stage_pred["confidence_pct"],
                     "distribution_shift": stage_pred["distribution_shift"],
@@ -318,7 +438,7 @@ def export_shift_scenarios_csv(predictor: CloudPilotPredictor, out_path: Path):
 
 
 def main():
-    print("CloudPilot Phase 3 - Predictive Intelligence Layer Training & Evaluation")
+    print("CloudPilot Phase 3 - Predictive Intelligence Layer + Hyperparameter Optimization")
     predictor = CloudPilotPredictor()
     summary = predictor.train(n_splits=5)
     saved_dir = predictor.save_models()
@@ -332,24 +452,26 @@ def main():
     # Export CSV result files to datasets/ and models/
     datasets_dir = ROOT_DIR / "datasets"
     eval_csv = datasets_dir / "model_evaluation_results.csv"
+    hpo_csv = datasets_dir / "hyperparameter_optimization_results.csv"
     preds_csv = datasets_dir / "model_predictions_comparison.csv"
     shift_csv = datasets_dir / "distribution_shift_test_results.csv"
 
     export_evaluation_csv(summary, eval_csv)
+    export_hpo_csv(summary, hpo_csv)
     export_predictions_comparison_csv(predictor, preds_csv)
     export_shift_scenarios_csv(predictor, shift_csv)
 
-    shutil.copy2(eval_csv, saved_dir / eval_csv.name)
-    shutil.copy2(preds_csv, saved_dir / preds_csv.name)
-    shutil.copy2(shift_csv, saved_dir / shift_csv.name)
+    for csv_file in (eval_csv, hpo_csv, preds_csv, shift_csv):
+        shutil.copy2(csv_file, saved_dir / csv_file.name)
 
-    print(f"\n{'=' * 82}")
-    print("Exported Model Testing & Evaluation CSV Files:")
+    print(f"\n{'=' * 90}")
+    print("Exported Model Testing, HPO & Evaluation CSV Files:")
     print(f"  1. {eval_csv.relative_to(ROOT_DIR)}")
-    print(f"  2. {preds_csv.relative_to(ROOT_DIR)}")
-    print(f"  3. {shift_csv.relative_to(ROOT_DIR)}")
+    print(f"  2. {hpo_csv.relative_to(ROOT_DIR)}")
+    print(f"  3. {preds_csv.relative_to(ROOT_DIR)}")
+    print(f"  4. {shift_csv.relative_to(ROOT_DIR)}")
     print(f"  (Copies also stored in {saved_dir.relative_to(ROOT_DIR)}/)")
-    print(f"{'=' * 82}")
+    print(f"{'=' * 90}")
 
 
 if __name__ == "__main__":

@@ -9,13 +9,15 @@ from backend.prediction.feature_pipeline import FeatureMatrix
 from backend.prediction.runtime_model import (
     build_candidate_models,
     compute_regression_metrics,
+    run_kfold_hpo,
 )
 
 
 class SingleTargetResourceModel:
     """
     Trains and evaluates the 5-model progression for a single resource metric
-    (either actual_cpu or actual_memory_mb).
+    (either actual_cpu or actual_memory_mb), followed by Hyperparameter Optimization (HPO)
+    on the best model.
     """
 
     def __init__(self, target_name: str, min_value: float = 0.1):
@@ -23,7 +25,10 @@ class SingleTargetResourceModel:
         self.min_value = min_value
         self.models_: Dict[str, Any] = {}
         self.cv_metrics_: Dict[str, Dict[str, float]] = {}
-        self.best_model_name_: str = "random_forest"
+        self.untuned_best_model_name_: str = "random_forest"
+        self.best_model_name_: str = "tuned_best"
+        self.best_params_: Dict[str, Any] = {}
+        self.hpo_summary_: Dict[str, Any] = {}
         self.confidence_estimator = ConfidenceEstimator(gamma=0.60, min_floor=min_value)
         self.is_fitted_: bool = False
 
@@ -31,6 +36,7 @@ class SingleTargetResourceModel:
         self, X: FeatureMatrix, y: np.ndarray, n_splits: int = 5
     ) -> Dict[str, Dict[str, float]]:
         y_arr = np.asarray(y, dtype=float)
+        X_mat = X.to_numpy(dtype=float)
         candidates = build_candidate_models(min_clip=self.min_value)
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 
@@ -39,7 +45,7 @@ class SingleTargetResourceModel:
 
         for name, base_model in candidates.items():
             oof_preds = np.zeros_like(y_arr, dtype=float)
-            for train_idx, val_idx in kf.split(X.to_numpy()):
+            for train_idx, val_idx in kf.split(X_mat):
                 X_tr = X.slice_rows(train_idx)
                 y_tr = y_arr[train_idx]
                 X_va = X.slice_rows(val_idx)
@@ -58,14 +64,51 @@ class SingleTargetResourceModel:
 
             fitted_model = clone(base_model)
             if name in ("random_forest", "xgboost"):
-                fitted_model.fit(X.to_numpy(dtype=float), y_arr)
+                fitted_model.fit(X_mat, y_arr)
             else:
                 fitted_model.fit(X, y_arr)
             self.models_[name] = fitted_model
 
-        self.best_model_name_ = min(
+        # 1. Identify best untuned model
+        self.untuned_best_model_name_ = min(
             self.cv_metrics_.keys(), key=lambda k: self.cv_metrics_[k]["mae"]
         )
+
+        # 2. Perform Hyperparameter Optimization on the winning ML architecture
+        target_family = (
+            self.untuned_best_model_name_
+            if self.untuned_best_model_name_ in ("random_forest", "xgboost")
+            else "xgboost"
+        )
+        tuned_model, best_params, tuned_metrics, hpo_info = run_kfold_hpo(
+            model_family=target_family,
+            X_mat=X_mat,
+            y_arr=y_arr,
+            kf=kf,
+            min_clip=self.min_value,
+            baseline_metrics=self.cv_metrics_[target_family],
+            baseline_estimator=candidates[target_family],
+        )
+
+        if target_family != "random_forest":
+            tuned_rf, _, _, _ = run_kfold_hpo(
+                model_family="random_forest",
+                X_mat=X_mat,
+                y_arr=y_arr,
+                kf=kf,
+                min_clip=self.min_value,
+                baseline_metrics=self.cv_metrics_["random_forest"],
+                baseline_estimator=candidates["random_forest"],
+            )
+            self.models_["tuned_random_forest"] = tuned_rf
+        else:
+            self.models_["tuned_random_forest"] = tuned_model
+
+        self.models_["tuned_best"] = tuned_model
+        self.cv_metrics_["tuned_best"] = tuned_metrics
+        self.best_params_ = best_params
+        self.hpo_summary_ = hpo_info
+        self.best_model_name_ = "tuned_best"
         self.is_fitted_ = True
         return self.cv_metrics_
 
@@ -78,7 +121,7 @@ class SingleTargetResourceModel:
             raise RuntimeError(f"Resource model for {self.target_name} is not fitted yet.")
         chosen = model_name or self.best_model_name_
         model = self.models_[chosen]
-        if chosen in ("random_forest", "xgboost"):
+        if chosen in ("random_forest", "xgboost", "tuned_best", "tuned_random_forest"):
             X_mat = X.to_numpy(dtype=float) if isinstance(X, FeatureMatrix) else np.asarray(X, dtype=float)
             if X_mat.ndim == 1:
                 X_mat = X_mat.reshape(1, -1)
@@ -94,7 +137,9 @@ class SingleTargetResourceModel:
         model_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         point_pred = float(self.predict(X_row, model_name=model_name)[0])
-        rf_model: RandomForestRegressor = self.models_["random_forest"]
+        rf_model: RandomForestRegressor = self.models_.get(
+            "tuned_random_forest", self.models_["random_forest"]
+        )
         conf_info = self.confidence_estimator.estimate_single(
             rf_model=rf_model,
             X_row=X_row,
@@ -106,7 +151,7 @@ class SingleTargetResourceModel:
             "expected_range": conf_info["expected_range"],
             "confidence": conf_info["confidence"],
             "confidence_pct": conf_info["confidence_pct"],
-            "model_used": model_name or self.best_model_name_,
+            "model_used": model_name or f"tuned_{self.untuned_best_model_name_}",
         }
 
 

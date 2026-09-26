@@ -3,7 +3,45 @@
   "cv_folds": 5,
   "targets": {
     "runtime_seconds": {
-      "best_model": "random_forest",
+      "untuned_best_model": "xgboost",
+      "best_model": "tuned_best",
+      "best_params": {
+        "n_estimators": 120,
+        "max_depth": 4,
+        "learning_rate": 0.05,
+        "subsample": 0.9,
+        "colsample_bytree": 1.0,
+        "reg_alpha": 0.0,
+        "reg_lambda": 0.5
+      },
+      "hyperparameter_optimization": {
+        "base_model_family": "xgboost",
+        "trials_evaluated": 12,
+        "best_params": {
+          "n_estimators": 120,
+          "max_depth": 4,
+          "learning_rate": 0.05,
+          "subsample": 0.9,
+          "colsample_bytree": 1.0,
+          "reg_alpha": 0.0,
+          "reg_lambda": 0.5
+        },
+        "before_hpo": {
+          "mae": 0.4611,
+          "rmse": 1.3687,
+          "mape_pct": 10.84,
+          "r2": 0.8741
+        },
+        "after_hpo": {
+          "mae": 0.3577,
+          "rmse": 1.3375,
+          "mape_pct": 8.69,
+          "r2": 0.8797
+        },
+        "mae_improvement_pct": 22.42,
+        "rmse_improvement_pct": 2.28,
+        "r2_gain": 0.0056
+      },
       "models": {
         "stage_mean": {
           "mae": 2.4194,
@@ -24,21 +62,65 @@
           "r2": 0.5838
         },
         "random_forest": {
-          "mae": 0.4104,
-          "rmse": 1.4021,
-          "mape_pct": 8.36,
-          "r2": 0.8678
+          "mae": 0.7298,
+          "rmse": 1.8738,
+          "mape_pct": 26.18,
+          "r2": 0.7639
         },
         "xgboost": {
-          "mae": 0.4396,
-          "rmse": 1.3494,
-          "mape_pct": 9.53,
-          "r2": 0.8776
+          "mae": 0.4611,
+          "rmse": 1.3687,
+          "mape_pct": 10.84,
+          "r2": 0.8741
+        },
+        "tuned_best": {
+          "mae": 0.3577,
+          "rmse": 1.3375,
+          "mape_pct": 8.69,
+          "r2": 0.8797
         }
       }
     },
     "actual_cpu": {
-      "best_model": "xgboost",
+      "untuned_best_model": "xgboost",
+      "best_model": "tuned_best",
+      "best_params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.06,
+        "subsample": 0.9,
+        "colsample_bytree": 0.95,
+        "reg_alpha": 0.02,
+        "reg_lambda": 0.8
+      },
+      "hyperparameter_optimization": {
+        "base_model_family": "xgboost",
+        "trials_evaluated": 12,
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "learning_rate": 0.06,
+          "subsample": 0.9,
+          "colsample_bytree": 0.95,
+          "reg_alpha": 0.02,
+          "reg_lambda": 0.8
+        },
+        "before_hpo": {
+          "mae": 0.0202,
+          "rmse": 0.0339,
+          "mape_pct": 3.51,
+          "r2": 0.991
+        },
+        "after_hpo": {
+          "mae": 0.018,
+          "rmse": 0.0296,
+          "mape_pct": 2.94,
+          "r2": 0.9932
+        },
+        "mae_improvement_pct": 10.89,
+        "rmse_improvement_pct": 12.68,
+        "r2_gain": 0.0022
+      },
       "models": {
         "stage_mean": {
           "mae": 0.2986,
@@ -59,21 +141,65 @@
           "r2": 0.6581
         },
         "random_forest": {
-          "mae": 0.0212,
-          "rmse": 0.0427,
-          "mape_pct": 2.82,
-          "r2": 0.9858
+          "mae": 0.0804,
+          "rmse": 0.1293,
+          "mape_pct": 17.58,
+          "r2": 0.8698
         },
         "xgboost": {
-          "mae": 0.0193,
-          "rmse": 0.0318,
-          "mape_pct": 3.25,
-          "r2": 0.9921
+          "mae": 0.0202,
+          "rmse": 0.0339,
+          "mape_pct": 3.51,
+          "r2": 0.991
+        },
+        "tuned_best": {
+          "mae": 0.018,
+          "rmse": 0.0296,
+          "mape_pct": 2.94,
+          "r2": 0.9932
         }
       }
     },
     "actual_memory_mb": {
-      "best_model": "xgboost",
+      "untuned_best_model": "xgboost",
+      "best_model": "tuned_best",
+      "best_params": {
+        "n_estimators": 150,
+        "max_depth": 3,
+        "learning_rate": 0.06,
+        "subsample": 0.95,
+        "colsample_bytree": 0.95,
+        "reg_alpha": 0.0,
+        "reg_lambda": 0.5
+      },
+      "hyperparameter_optimization": {
+        "base_model_family": "xgboost",
+        "trials_evaluated": 12,
+        "best_params": {
+          "n_estimators": 150,
+          "max_depth": 3,
+          "learning_rate": 0.06,
+          "subsample": 0.95,
+          "colsample_bytree": 0.95,
+          "reg_alpha": 0.0,
+          "reg_lambda": 0.5
+        },
+        "before_hpo": {
+          "mae": 4.5735,
+          "rmse": 6.9908,
+          "mape_pct": 6.2,
+          "r2": 0.987
+        },
+        "after_hpo": {
+          "mae": 4.3496,
+          "rmse": 6.9592,
+          "mape_pct": 5.56,
+          "r2": 0.9872
+        },
+        "mae_improvement_pct": 4.9,
+        "rmse_improvement_pct": 0.45,
+        "r2_gain": 0.0002
+      },
       "models": {
         "stage_mean": {
           "mae": 47.7506,
@@ -94,16 +220,22 @@
           "r2": 0.9877
         },
         "random_forest": {
-          "mae": 5.5473,
-          "rmse": 8.4043,
-          "mape_pct": 7.54,
-          "r2": 0.9813
+          "mae": 7.5356,
+          "rmse": 11.4294,
+          "mape_pct": 11.41,
+          "r2": 0.9654
         },
         "xgboost": {
-          "mae": 4.7274,
-          "rmse": 7.7085,
-          "mape_pct": 6.01,
-          "r2": 0.9842
+          "mae": 4.5735,
+          "rmse": 6.9908,
+          "mape_pct": 6.2,
+          "r2": 0.987
+        },
+        "tuned_best": {
+          "mae": 4.3496,
+          "rmse": 6.9592,
+          "mape_pct": 5.56,
+          "r2": 0.9872
         }
       }
     }

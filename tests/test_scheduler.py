@@ -13,10 +13,7 @@ def test_scheduler_linear_execution():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
-<<<<<<< HEAD
-=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
->>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep") as mock_sleep:
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm
@@ -55,26 +52,19 @@ def test_scheduler_parallel_branches():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
-<<<<<<< HEAD
-=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
->>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep"):
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm
         
-        completed_jobs = set()
         def mock_create(job):
             return job.metadata.name
         mock_jm.create_job.side_effect = mock_create
         
         # Step-by-step completion simulation
-        call_step = {"count": 0}
         def mock_is_complete(jname):
-            # In first step root completes
             if "root" in jname:
                 return True
-            # In later step branches complete
             if "branch" in jname:
                 return True
             if "join" in jname:
@@ -103,10 +93,7 @@ def test_scheduler_failure_cascades_to_downstream():
     )
     
     with patch("backend.scheduler.dag_scheduler.JobManager") as mock_jm_cls, \
-<<<<<<< HEAD
-=======
          patch("backend.scheduler.dag_scheduler.ProfilingCollector"), \
->>>>>>> origin/main
          patch("backend.scheduler.dag_scheduler.time.sleep"):
         mock_jm = MagicMock()
         mock_jm_cls.return_value = mock_jm

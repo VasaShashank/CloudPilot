@@ -25,11 +25,13 @@ class StageDefinition(BaseModel):
     env: Optional[dict[str, str]] = None
     cpu: Optional[str] = None
     memory: Optional[str] = None
+    limit_memory: Optional[str] = None  # Phase 4: K8s memory hard limit (OOMKill threshold)
 
 class WorkflowDefinition(BaseModel):
     """Complete workflow definition parsed from YAML."""
     name: str
     stages: list[StageDefinition]
+    deadline_seconds: Optional[int] = None  # Phase 4: SLA deadline for the entire workflow
 
 class StageStatus(BaseModel):
     """Runtime status of a single stage."""

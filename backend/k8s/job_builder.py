@@ -23,19 +23,31 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         for k, v in stage.env.items():
             env_vars.append(client.V1EnvVar(name=k, value=str(v)))
             
-    resources = client.V1ResourceRequirements(requests={})
+    # Build resource requests
+    requests = {}
     if stage.cpu:
-        resources.requests["cpu"] = stage.cpu
+        requests["cpu"] = stage.cpu
     if stage.memory:
-        resources.requests["memory"] = stage.memory
-        
+        requests["memory"] = stage.memory
+
+    # Build resource limits (Phase 4: hard ceiling to prevent OOMKills)
+    limits = {}
+    if stage.limit_memory:
+        limits["memory"] = stage.limit_memory
+    # CPU limit intentionally omitted — throttling is preferable to eviction
+
+    resources = client.V1ResourceRequirements(
+        requests=requests if requests else None,
+        limits=limits if limits else None,
+    )
+
     container = client.V1Container(
         name=sanitized_stage_id,
         image=stage_image,
         image_pull_policy="IfNotPresent",
         env=env_vars,
         command=stage.command,
-        resources=resources if resources.requests else None
+        resources=resources if (requests or limits) else None
     )
     
     pod_spec = client.V1PodSpec(

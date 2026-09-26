@@ -1,0 +1,19 @@
+target,unit,model_key,model_name,model_tier,cv_folds,dataset_rows,mae,rmse,mape_pct,r2_score,is_best,best_hyperparameters
+runtime_seconds,s,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,2.4194,3.7747,273.57,0.042,False,default
+runtime_seconds,s,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,2.1271,4.1035,109.79,-0.1322,False,default
+runtime_seconds,s,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,1.3083,2.488,112.2,0.5838,False,default
+runtime_seconds,s,random_forest,Random Forest (Default),3_Ensemble_Bagging_ML,5,90,0.7298,1.8738,26.18,0.7639,False,default
+runtime_seconds,s,xgboost,XGBoost (Default),3_Ensemble_Boosting_ML,5,90,0.4611,1.3687,10.84,0.8741,False,default
+runtime_seconds,s,tuned_best,Tuned Xgboost (HPO),4_Hyperparameter_Optimized,5,90,0.3577,1.3375,8.69,0.8797,True,"{""n_estimators"": 120, ""max_depth"": 4, ""learning_rate"": 0.05, ""subsample"": 0.9, ""colsample_bytree"": 1.0, ""reg_alpha"": 0.0, ""reg_lambda"": 0.5}"
+actual_cpu,cores,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,0.2986,0.3668,63.86,-0.0474,False,default
+actual_cpu,cores,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,0.2927,0.3857,53.84,-0.1578,False,default
+actual_cpu,cores,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,0.1707,0.2096,35.94,0.6581,False,default
+actual_cpu,cores,random_forest,Random Forest (Default),3_Ensemble_Bagging_ML,5,90,0.0804,0.1293,17.58,0.8698,False,default
+actual_cpu,cores,xgboost,XGBoost (Default),3_Ensemble_Boosting_ML,5,90,0.0202,0.0339,3.51,0.991,False,default
+actual_cpu,cores,tuned_best,Tuned Xgboost (HPO),4_Hyperparameter_Optimized,5,90,0.018,0.0296,2.94,0.9932,True,"{""n_estimators"": 100, ""max_depth"": 3, ""learning_rate"": 0.06, ""subsample"": 0.9, ""colsample_bytree"": 0.95, ""reg_alpha"": 0.02, ""reg_lambda"": 0.8}"
+actual_memory_mb,MB,stage_mean,Stage Mean Baseline,1_Statistical_Baseline,5,90,47.7506,67.4747,80.5,-0.2073,False,default
+actual_memory_mb,MB,stage_median,Stage Median Baseline,1_Statistical_Baseline,5,90,41.1438,66.5548,52.83,-0.1746,False,default
+actual_memory_mb,MB,ridge_regression,Ridge Regression (Linear),2_Linear_Regression,5,90,4.9707,6.7991,8.46,0.9877,False,default
+actual_memory_mb,MB,random_forest,Random Forest (Default),3_Ensemble_Bagging_ML,5,90,7.5356,11.4294,11.41,0.9654,False,default
+actual_memory_mb,MB,xgboost,XGBoost (Default),3_Ensemble_Boosting_ML,5,90,4.5735,6.9908,6.2,0.987,False,default
+actual_memory_mb,MB,tuned_best,Tuned Xgboost (HPO),4_Hyperparameter_Optimized,5,90,4.3496,6.9592,5.56,0.9872,True,"{""n_estimators"": 150, ""max_depth"": 3, ""learning_rate"": 0.06, ""subsample"": 0.95, ""colsample_bytree"": 0.95, ""reg_alpha"": 0.0, ""reg_lambda"": 0.5}"

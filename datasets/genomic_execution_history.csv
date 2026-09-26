@@ -89,9 +89,4 @@ wf-genomic-rge_full-01,filtering_chr22_large_full,filtering,chr22_large_full,gen
 wf-genomic-rge_full-01,variant_processing_chr22_large_full,variant_processing,chr22_large_full,genomic,22,16050000,20050000,4000000,109665,2504,19.8364,250m,2048.0,2,13.822,0.25,233.28,True,2026-09-20 20:58:26
 wf-genomic-rge_full-01,feature_extraction_chr22_large_full,feature_extraction,chr22_large_full,genomic,22,16050000,20050000,4000000,109665,2504,19.8364,500m,1024.0,1,9.157,0.387,231.31,True,2026-09-23 08:11:26
 wf-genomic-rge_full-01,analysis_chr22_large_full,analysis,chr22_large_full,genomic,22,16050000,20050000,4000000,109665,2504,19.8364,250m,1024.0,1,8.059,0.25,214.83,True,2026-09-21 04:01:26
-wf-test-1,qc,vcf_stats,chr22_qc,genomic,22,16050000,16150000,100000,1170,2504,0.174,500m,1024.0,2,1.25,0.35,28.5,True,2026-09-23 12:00:00
-wf-col-1,filtering,filtering,chr22_filtering,genomic,22,16050000,16150000,100000,1500,2504,0.17,1000m,2048.0,4,15.0,0.88,45.0,True,2026-09-23T13:54:38.871331
-wf-test-1,qc,vcf_stats,chr22_qc,genomic,22,16050000,16150000,100000,1170,2504,0.174,500m,1024.0,2,1.25,0.35,28.5,True,2026-09-23 12:00:00
-wf-col-1,filtering,filtering,chr22_filtering,genomic,22,16050000,16150000,100000,1500,2504,0.17,1000m,2048.0,4,15.0,0.88,45.0,True,2026-09-23T13:55:00.975566
-wf-test-1,qc,vcf_stats,chr22_qc,genomic,22,16050000,16150000,100000,1170,2504,0.174,500m,1024.0,2,1.25,0.35,28.5,True,2026-09-23 12:00:00
-wf-col-1,filtering,filtering,chr22_filtering,genomic,22,16050000,16150000,100000,1500,2504,0.17,1000m,2048.0,4,15.0,0.88,45.0,True,2026-09-23T14:00:31.161921
+

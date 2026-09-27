@@ -28,7 +28,7 @@ else
 fi
 
 echo "Building docker image cloudpilot-workload:latest..."
-docker build -t cloudpilot-workload:latest "$SCRIPT_DIR/../workloads/"
+docker build -f "$SCRIPT_DIR/../workloads/Dockerfile" -t cloudpilot-workload:latest "$SCRIPT_DIR/.."
 
 echo "Loading image into kind cluster..."
 if command -v kind &> /dev/null; then

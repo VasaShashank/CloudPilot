@@ -246,8 +246,20 @@ class CloudPilotPredictor:
             "workload_id": env.get("WORKLOAD_ID", meta.get("workload_id")),
             "chunk_size": env.get("CHUNK_SIZE", meta.get("chunk_size", "small")),
         }
+        # YAML environment values are the runtime source of genomic metadata.
+        # Accept the documented uppercase names used by workflow definitions.
+        env_feature_names = {
+            "region_size": "REGION_SIZE",
+            "variant_count": "VARIANT_COUNT",
+            "sample_count": "SAMPLE_COUNT",
+            "dataset_size_mb": "DATASET_SIZE_MB",
+            "chromosome": "CHROMOSOME",
+        }
+        for feature_name, env_name in env_feature_names.items():
+            if env.get(env_name) not in (None, ""):
+                stage_input[feature_name] = env[env_name]
         for k in ("region_size", "variant_count", "sample_count", "dataset_size_mb", "chromosome"):
-            if k in meta:
+            if k not in stage_input and k in meta:
                 stage_input[k] = meta[k]
         return self.predict_stage(stage_input, model_name=model_name)
 

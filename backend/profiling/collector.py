@@ -1,5 +1,6 @@
 import json
 import logging
+from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -9,6 +10,7 @@ from backend.profiling.feature_builder import FeatureBuilder
 logger = logging.getLogger("cloudpilot")
 
 PROFILING_PREFIX = "[CloudPilot Profiling]"
+DEFAULT_DECISION_AUDIT_PATH = Path(__file__).resolve().parent.parent.parent / "datasets" / "decision_history.jsonl"
 
 def extract_telemetry_from_logs(logs: str) -> Optional[Dict[str, Any]]:
     """Scan container logs for the JSON profiling line."""
@@ -28,8 +30,25 @@ def extract_telemetry_from_logs(logs: str) -> Optional[Dict[str, Any]]:
     return None
 
 class ProfilingCollector:
-    def __init__(self, feature_builder: Optional[FeatureBuilder] = None):
+    def __init__(self, feature_builder: Optional[FeatureBuilder] = None, decision_audit_path: Path = DEFAULT_DECISION_AUDIT_PATH):
         self.feature_builder = feature_builder or FeatureBuilder()
+        self.decision_audit_path = decision_audit_path
+
+    def append_decision_audit(self, workflow_id: str, stage_def: StageDefinition, stage_status: StageStatus) -> None:
+        """Persist predictions, allocations, and observations without changing the ML CSV schema."""
+        if not stage_status.prediction and not stage_status.decision:
+            return
+        self.decision_audit_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "workflow_id": workflow_id,
+            "stage_id": stage_def.id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "prediction": stage_status.prediction,
+            "decision": stage_status.decision,
+            "actual_metrics": stage_status.actual_metrics,
+        }
+        with open(self.decision_audit_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
 
     def process_stage_completion(
         self,

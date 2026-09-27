@@ -109,7 +109,7 @@ def run_evaluation(
     cloudpilot_alloc_cpu_total = 0.0
     cloudpilot_alloc_mem_total = 0.0
     cloudpilot_sla_violations = 0
-    tier_counts = {"HIGH_CONFIDENCE": 0, "MODERATE_CONFIDENCE": 0, "FALLBACK": 0}
+    tier_counts = {"high": 0, "moderate": 0, "fallback": 0}
     shift_counts = {"NORMAL": 0, "WARNING": 0, "SHIFTED": 0}
 
     # Actuals & Predictions for MAPE calculation
@@ -189,10 +189,12 @@ def run_evaluation(
         pred_runtime_list.append(pred_runtime)
         conf_list.append(confidence)
 
-        # SLA Simulation: Stage deadline set at 1.15x expected runtime
-        stage_deadline = actual_runtime * 1.15
+        # Replay against a deadline fixed *before* observing actual execution.
+        # The former actual_runtime * 1.15 formulation could never report a breach.
+        stage_deadline = max(pred_runtime * 1.15, 0.001)
         if actual_runtime > stage_deadline:
             static_sla_violations += 1
+            cloudpilot_sla_violations += 1
 
         records_evaluated += 1
 
@@ -265,9 +267,10 @@ def run_evaluation(
             },
             "sla": {
                 "static_violations": static_sla_violations,
-                "cloudpilot_violations": 0,
-                "cloudpilot_violation_rate_pct": 0.0,
-                "target_achieved": True,
+                "cloudpilot_violations": cloudpilot_sla_violations,
+                "cloudpilot_violation_rate_pct": round((cloudpilot_sla_violations / max(records_evaluated, 1)) * 100.0, 2),
+                "target_achieved": cloudpilot_sla_violations == 0,
+                "measurement_note": "Historical replay evaluates prediction deadline misses; strategy-specific SLA results require live executions under each allocation policy.",
             },
             "accuracy": {
                 "runtime_mape_pct": round(runtime_mape, 2),
@@ -311,9 +314,9 @@ Evaluated on **{records_evaluated}** production genomic execution stages across 
 | **Mean Confidence** | N/A | N/A | **{results['mean_confidence']*100:.1f}%** | ✅ |
 
 ### Intelligence & Decision Tiers
-- **High Confidence Tiers (+25% CPU, +30% Mem):** {tier_counts.get('HIGH_CONFIDENCE', 0)} stages
-- **Moderate Confidence Tiers (+60% CPU, +75% Mem):** {tier_counts.get('MODERATE_CONFIDENCE', 0)} stages
-- **Safe Fallback Tiers (2000m, 2048Mi):** {tier_counts.get('FALLBACK', 0)} stages
+- **High Confidence Tiers (+25% CPU, +30% Mem):** {tier_counts.get('high', 0)} stages
+- **Moderate Confidence Tiers (+60% CPU, +75% Mem):** {tier_counts.get('moderate', 0)} stages
+- **Safe Fallback Tiers (2000m, 2048Mi):** {tier_counts.get('fallback', 0)} stages
 
 ### Prediction Accuracy
 - **Runtime MAPE:** {results['metrics']['accuracy']['runtime_mape_pct']:.2f}%

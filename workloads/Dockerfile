@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir psutil
 
-COPY data/chunks /app/data/chunks
-COPY simulate.py .
+# Build from the repository root:
+# docker build -f workloads/Dockerfile -t cloudpilot-workload:latest .
+# The directory is always present (via .gitkeep); real Phase-2 VCF chunks are
+# intentionally local-only and can be generated under data/genomic/chunks.
+COPY data/genomic/chunks/ /app/data/chunks/
+COPY workloads/simulate.py .
 CMD ["python", "simulate.py"]

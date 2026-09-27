@@ -28,7 +28,7 @@ if ($hasKind) {
 }
 
 Write-Host "Building docker image cloudpilot-workload:latest..."
-docker build -t cloudpilot-workload:latest ./workloads/
+docker build -f ./workloads/Dockerfile -t cloudpilot-workload:latest .
 
 Write-Host "Loading image into kind cluster..."
 if ($hasKind) {

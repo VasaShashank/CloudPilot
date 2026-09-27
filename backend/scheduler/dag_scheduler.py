@@ -77,13 +77,15 @@ class DAGScheduler:
         completed: set[str] = set()
         failed:    set[str] = set()
         running:   set[str] = set()
+        submitted_stage_defs = {}
 
         runnable = dag.get_root_stages()
         logger.info(f"[CloudPilot] Initial runnable stages: {runnable}")
 
         for stage_id in runnable:
-            self._submit_stage(workflow_id, dag, stage_id, status, completed,
-                               workflow_start, deadline_seconds)
+            submitted_stage_defs[stage_id] = self._submit_stage(
+                workflow_id, dag, stage_id, status, completed, workflow_start, deadline_seconds
+            )
             running.add(stage_id)
 
         # 6. Monitor loop
@@ -104,7 +106,7 @@ class DAGScheduler:
 
                     try:
                         logs = self.job_manager.get_job_logs(job_name)
-                        stage_def = dag.get_stage_data(stage_id)
+                        stage_def = submitted_stage_defs[stage_id]
                         record = self.profiling_collector.process_stage_completion(
                             workflow_id, stage_def, status.stages[stage_id], logs
                         )
@@ -114,6 +116,9 @@ class DAGScheduler:
                                 "actual_memory_mb": record.get("actual_memory_mb"),
                                 "runtime_seconds": record.get("runtime_seconds"),
                             }
+                        self.profiling_collector.append_decision_audit(
+                            workflow_id, stage_def, status.stages[stage_id]
+                        )
                     except Exception as exc:
                         logger.warning(f"Could not record profiling for {stage_id}: {exc}")
 
@@ -126,9 +131,18 @@ class DAGScheduler:
 
                     try:
                         logs = self.job_manager.get_job_logs(job_name)
-                        stage_def = dag.get_stage_data(stage_id)
-                        self.profiling_collector.process_stage_completion(
+                        stage_def = submitted_stage_defs[stage_id]
+                        record = self.profiling_collector.process_stage_completion(
                             workflow_id, stage_def, status.stages[stage_id], logs
+                        )
+                        if record:
+                            status.stages[stage_id].actual_metrics = {
+                                "actual_cpu": record.get("actual_cpu"),
+                                "actual_memory_mb": record.get("actual_memory_mb"),
+                                "runtime_seconds": record.get("runtime_seconds"),
+                            }
+                        self.profiling_collector.append_decision_audit(
+                            workflow_id, stage_def, status.stages[stage_id]
                         )
                     except Exception as exc:
                         logger.warning(f"Could not record failure profiling for {stage_id}: {exc}")
@@ -153,8 +167,9 @@ class DAGScheduler:
                 if next_runnable:
                     logger.info(f"[CloudPilot] Next runnable stages: {next_runnable}")
                     for stage_id in next_runnable:
-                        self._submit_stage(workflow_id, dag, stage_id, status, completed,
-                                           workflow_start, deadline_seconds)
+                        submitted_stage_defs[stage_id] = self._submit_stage(
+                            workflow_id, dag, stage_id, status, completed, workflow_start, deadline_seconds
+                        )
                         running.add(stage_id)
 
         # 7. Final status
@@ -199,6 +214,7 @@ class DAGScheduler:
         status.stages[stage_id].job_name = job_name
         status.stages[stage_id].started_at = datetime.now(timezone.utc)
         logger.info(f"[CloudPilot] Created Job: {job_name}")
+        return stage_def
 
     def _apply_intelligence(
         self,
@@ -275,15 +291,23 @@ class DAGScheduler:
             s for s in dag.get_all_stages()
             if s not in completed
         ]
-        total_predicted = 0.0
+        predicted_runtimes = {}
         for stage_id in pending_stages:
             try:
                 stage_def = dag.get_stage_data(stage_id)
                 pred = self._predictor.predict_from_stage_definition(stage_def)
-                total_predicted += pred.get("predicted_runtime_seconds", 0.0)
+                predicted_runtimes[stage_id] = float(pred.get("predicted_runtime_seconds", 0.0))
             except Exception:
                 pass  # prediction failure → conservative, don't flag pressure
 
+        # Critical-path duration accounts for stages that can run in parallel.
+        finish_times = {}
+        for stage_id in dag.topological_order():
+            if stage_id not in pending_stages:
+                continue
+            dependencies = [d for d in dag.get_dependencies(stage_id) if d in finish_times]
+            finish_times[stage_id] = max((finish_times[d] for d in dependencies), default=0.0) + predicted_runtimes.get(stage_id, 0.0)
+        total_predicted = max(finish_times.values(), default=0.0)
         pressure = total_predicted > (0.80 * remaining)
         if pressure:
             logger.warning(

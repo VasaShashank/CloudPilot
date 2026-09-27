@@ -1,7 +1,9 @@
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from backend.scheduler.dag_scheduler import DAGScheduler
 from backend.models.workflow import WorkflowDefinition, StageDefinition, StageState, WorkflowState
+from backend.workflow.dag import WorkflowDAG
 
 def test_scheduler_linear_execution():
     wf = WorkflowDefinition(
@@ -113,3 +115,25 @@ def test_scheduler_failure_cascades_to_downstream():
         assert status.stages["s3"].state == StageState.FAILED
         # Only s1 was ever submitted as a Job
         assert mock_jm.create_job.call_count == 1
+
+def test_deadline_pressure_uses_remaining_critical_path():
+    workflow = WorkflowDefinition(
+        name="diamond",
+        stages=[
+            StageDefinition(id="root", type="Job"),
+            StageDefinition(id="left", type="Job", depends_on=["root"]),
+            StageDefinition(id="right", type="Job", depends_on=["root"]),
+            StageDefinition(id="join", type="Job", depends_on=["left", "right"]),
+        ],
+    )
+    scheduler = DAGScheduler.__new__(DAGScheduler)
+
+    class Predictor:
+        def predict_from_stage_definition(self, stage):
+            return {"predicted_runtime_seconds": {"root": 10, "left": 30, "right": 30, "join": 10}[stage.id]}
+
+    scheduler._predictor = Predictor()
+    # Critical path is 50 seconds, while a sequential sum would be 80 seconds.
+    assert scheduler._check_deadline_pressure(
+        WorkflowDAG(workflow), set(), datetime.now(timezone.utc), deadline_seconds=70
+    ) is False

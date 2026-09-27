@@ -109,6 +109,24 @@ def test_profiling_collector_process_completion(tmp_path):
     lines = csv_file.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 2
 
+def test_profiling_collector_persists_decision_audit(tmp_path):
+    audit_path = tmp_path / "decision_history.jsonl"
+    collector = ProfilingCollector(
+        feature_builder=FeatureBuilder(dataset_path=tmp_path / "history.csv"),
+        decision_audit_path=audit_path,
+    )
+    stage = StageDefinition(id="qc", type="vcf_stats")
+    status = StageStatus(
+        id="qc", type="vcf_stats", state=StageState.COMPLETED,
+        prediction={"confidence": 0.9}, decision={"cpu_request": "500m"},
+        actual_metrics={"runtime_seconds": 1.2},
+    )
+    collector.append_decision_audit("wf-audit", stage, status)
+
+    saved = audit_path.read_text(encoding="utf-8")
+    assert "wf-audit" in saved
+    assert "500m" in saved
+
 def test_generate_clean_genomic_dataset(tmp_path):
     raw_csv = tmp_path / "raw_history.csv"
     clean_csv = tmp_path / "clean_genomic.csv"

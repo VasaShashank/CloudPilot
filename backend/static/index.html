@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>CloudPilot Apex — Intelligent Autonomous Kubernetes Orchestration</title>
-  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=20260928">
   <!-- Cytoscape for DAG rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <!-- Dagre layout algorithm for Cytoscape -->
@@ -87,7 +90,7 @@
       <div class="hud-gauge">
         <svg width="44" height="44">
           <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="hud-gauge-fill cyan" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="26"></circle>
+          <circle class="hud-gauge-fill cyan" id="gaugeCpu" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="26"></circle>
         </svg>
       </div>
     </div>
@@ -104,7 +107,7 @@
       <div class="hud-gauge">
         <svg width="44" height="44">
           <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="hud-gauge-fill green" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="10"></circle>
+          <circle class="hud-gauge-fill green" id="gaugeMem" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="10"></circle>
         </svg>
       </div>
     </div>
@@ -121,7 +124,7 @@
       <div class="hud-gauge">
         <svg width="44" height="44">
           <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="hud-gauge-fill violet" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="4"></circle>
+          <circle class="hud-gauge-fill violet" id="gaugeConf" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="4"></circle>
         </svg>
       </div>
     </div>
@@ -138,7 +141,7 @@
       <div class="hud-gauge">
         <svg width="44" height="44">
           <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="hud-gauge-fill green" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"></circle>
+          <circle class="hud-gauge-fill green" id="gaugeSla" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"></circle>
         </svg>
       </div>
     </div>
@@ -505,20 +508,20 @@
             </div>
             <div class="metrics-matrix">
               <div class="matrix-item">
-                <span class="matrix-label">Node Footprint</span>
-                <span class="matrix-val">4.0 cores / node</span>
+                <span class="matrix-label">Burstable Host CPU</span>
+                <span class="matrix-val" id="evalUnmanagedCpu">472.0 c</span>
               </div>
               <div class="matrix-item">
                 <span class="matrix-label">Contention Risk</span>
-                <span class="matrix-val" style="color:var(--amber);">SEVERE</span>
+                <span class="matrix-val" id="evalUnmanagedRisk" style="color:var(--amber);">SEVERE</span>
+              </div>
+              <div class="matrix-item">
+                <span class="matrix-label">Burstable Host RAM</span>
+                <span class="matrix-val" id="evalUnmanagedMem">483,328 MiB</span>
               </div>
               <div class="matrix-item">
                 <span class="matrix-label">OOM Eviction Risk</span>
-                <span class="matrix-val" style="color:var(--rose);">CRITICAL</span>
-              </div>
-              <div class="matrix-item">
-                <span class="matrix-label">SLA Predictability</span>
-                <span class="matrix-val" style="color:var(--rose);">UNBOUNDED</span>
+                <span class="matrix-val" id="evalUnmanagedOom" style="color:var(--rose);">CRITICAL</span>
               </div>
             </div>
             <div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border-glass); padding-top:10px;">
@@ -592,6 +595,6 @@
   </main>
 
   <!-- Dashboard JavaScript Logic -->
-  <script src="/static/js/dashboard.js"></script>
+  <script src="/static/js/dashboard.js?v=20260928_2"></script>
 </body>
 </html>

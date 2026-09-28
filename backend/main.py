@@ -144,14 +144,14 @@ def get_stage_logs(workflow_id: str, stage_id: str):
 def serve_dashboard_root():
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return PlainTextResponse("CloudPilot API active. Static dashboard not found.")
 
 @app.get("/dashboard", response_class=FileResponse)
 def serve_dashboard():
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return PlainTextResponse("CloudPilot API active. Static dashboard not found.")
 
 @app.get("/api/templates")
@@ -266,13 +266,32 @@ def get_workflow_dag(workflow_id: str):
     # Workflow Summary Metrics
     total_pred_runtime = 0.0
     total_act_runtime = 0.0
+    total_static_cpu = 0.0
+    total_cp_cpu = 0.0
+    total_static_mem = 0.0
+    total_cp_mem = 0.0
+
+    from scripts.evaluate_platform import parse_cpu_to_cores, parse_memory_to_mb
+
     for s in status.stages.values():
         if s.prediction and "predicted_runtime_seconds" in s.prediction:
             total_pred_runtime += float(s.prediction["predicted_runtime_seconds"])
         if s.actual_metrics and "runtime_seconds" in s.actual_metrics:
             total_act_runtime += float(s.actual_metrics["runtime_seconds"])
 
-    core_hours_saved = max(0.001, (total_act_runtime / 3600.0) * 0.45)
+        total_static_cpu += 1.0
+        total_static_mem += 1024.0
+
+        if s.decision:
+            total_cp_cpu += parse_cpu_to_cores(s.decision.get("cpu_request", "1000m"))
+            total_cp_mem += parse_memory_to_mb(s.decision.get("memory_request", "1024Mi"))
+        else:
+            total_cp_cpu += 1.0
+            total_cp_mem += 1024.0
+
+    core_hours_saved = max(0.0, (total_act_runtime / 3600.0) * max(0.0, total_static_cpu - total_cp_cpu))
+    cpu_savings_pct = round(((total_static_cpu - total_cp_cpu) / total_static_cpu * 100.0), 1) if total_static_cpu > 0 else 0.0
+    mem_savings_pct = round(((total_static_mem - total_cp_mem) / total_static_mem * 100.0), 1) if total_static_mem > 0 else 0.0
 
     return {
         "workflow_id": workflow_id,
@@ -284,8 +303,8 @@ def get_workflow_dag(workflow_id: str):
             "total_predicted_runtime": round(total_pred_runtime, 2),
             "total_actual_runtime": round(total_act_runtime, 2),
             "core_hours_saved": round(core_hours_saved, 4),
-            "memory_footprint_reduction_pct": 91.0,
-            "cpu_savings_pct": 23.1
+            "memory_footprint_reduction_pct": mem_savings_pct,
+            "cpu_savings_pct": cpu_savings_pct
         }
     }
 

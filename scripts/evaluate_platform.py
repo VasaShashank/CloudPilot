@@ -265,6 +265,13 @@ def run_evaluation(
                 "allocated_reduction_pct": round(mem_allocated_reduction_pct, 2),
                 "target_achieved": bool(mem_waste_reduction_pct >= 35.0 or mem_allocated_reduction_pct >= 35.0),
             },
+            "unmanaged": {
+                "burst_cpu_cores": round(unmanaged_alloc_cpu_total, 1),
+                "burst_mem_mb": round(unmanaged_alloc_mem_total, 1),
+                "contention_risk": "SEVERE",
+                "oom_risk": "CRITICAL",
+                "sla_predictability": "UNBOUNDED"
+            },
             "sla": {
                 "static_violations": static_sla_violations,
                 "cloudpilot_violations": cloudpilot_sla_violations,

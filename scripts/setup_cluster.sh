@@ -7,8 +7,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if command -v kind &> /dev/null; then
     if ! kind get clusters | grep -q "cloudpilot"; then
-        echo "Creating kind cluster 'cloudpilot'..."
-        kind create cluster --name cloudpilot
+        echo "Creating 3-node heterogeneous cloud simulation cluster 'cloudpilot'..."
+        if [ -f "$SCRIPT_DIR/../k8s/kind-multi-node.yaml" ]; then
+            kind create cluster --name cloudpilot --config "$SCRIPT_DIR/../k8s/kind-multi-node.yaml"
+        else
+            kind create cluster --name cloudpilot
+        fi
     else
         echo "Cluster 'cloudpilot' already exists."
     fi

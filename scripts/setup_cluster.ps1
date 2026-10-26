@@ -7,8 +7,12 @@ $hasKind = Get-Command kind -ErrorAction SilentlyContinue
 if ($hasKind) {
     $clusters = kind get clusters
     if ($clusters -notcontains "cloudpilot") {
-        Write-Host "Creating kind cluster 'cloudpilot'..."
-        kind create cluster --name cloudpilot
+        Write-Host "Creating 3-node heterogeneous cloud simulation cluster 'cloudpilot'..."
+        if (Test-Path "./k8s/kind-multi-node.yaml") {
+            kind create cluster --name cloudpilot --config ./k8s/kind-multi-node.yaml
+        } else {
+            kind create cluster --name cloudpilot
+        }
     } else {
         Write-Host "Cluster 'cloudpilot' already exists."
     }

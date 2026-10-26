@@ -2,7 +2,7 @@ from kubernetes import client
 from backend.config import WORKLOAD_IMAGE, JOB_PREFIX
 from backend.models.workflow import StageDefinition
 
-def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IMAGE) -> client.V1Job:
+def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IMAGE, node_type: str = None) -> client.V1Job:
     short_workflow_id = workflow_id[:8].lower().replace("_", "-")
     sanitized_stage_id = stage.id.lower().replace("_", "-")
     job_name = f"{JOB_PREFIX}-{short_workflow_id}-{sanitized_stage_id}"
@@ -50,10 +50,17 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
         resources=resources if (requests or limits) else None
     )
     
-    pod_spec = client.V1PodSpec(
-        containers=[container],
-        restart_policy="Never"
-    )
+    pod_kwargs = {
+        "containers": [container],
+        "restart_policy": "Never"
+    }
+    if node_type:
+        from backend.k8s.node_types import build_node_affinity
+        affinity = build_node_affinity(node_type)
+        if affinity:
+            pod_kwargs["affinity"] = affinity
+
+    pod_spec = client.V1PodSpec(**pod_kwargs)
     
     job_spec = client.V1JobSpec(
         template=client.V1PodTemplateSpec(

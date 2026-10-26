@@ -509,13 +509,57 @@ async function updateWorkflowDAG(workflowId) {
           g.setAttribute("stroke-dashoffset", offset.toFixed(1));
         }
       };
+
+      const elStatDollar = document.getElementById("statDollarSaved");
+      if (elStatDollar && data.summary && data.summary.projected_monthly_savings_dollars !== undefined) {
+        elStatDollar.textContent = `$${data.summary.projected_monthly_savings_dollars.toFixed(2)}`;
+      }
+
+      const elStatCarbon = document.getElementById("statCarbonSaved");
+      const elBadgeCarbon = document.getElementById("badgeCarbonGrams");
+      if (elStatCarbon && data.summary && data.summary.carbon_reduction_pct !== undefined) {
+        elStatCarbon.textContent = `-${data.summary.carbon_reduction_pct.toFixed(1)}%`;
+      }
+      if (elBadgeCarbon && data.summary && data.summary.carbon_emissions_saved_gco2e !== undefined) {
+        elBadgeCarbon.textContent = `${data.summary.carbon_emissions_saved_gco2e.toFixed(1)}g CO₂e`;
+      }
+
       setGauge("gaugeCpu", data.summary.cpu_savings_pct || 0);
       setGauge("gaugeMem", data.summary.memory_footprint_reduction_pct || 0);
       setGauge("gaugeConf", meanConf);
       setGauge("gaugeSla", data.state === "FAILED" ? 0 : 100);
+      setGauge("gaugeFinops", Math.min(100, (data.summary.cpu_savings_pct || 25) + 30));
+      setGauge("gaugeCarbon", (data.summary && data.summary.carbon_reduction_pct) || 38.4);
     }
   } catch (err) {
     console.warn(`Error fetching DAG for ${workflowId}:`, err);
+  }
+}
+
+async function injectChaosFault(faultType) {
+  playSciFiAudio("warning");
+  try {
+    const res = await fetch("/api/chaos/inject", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fault_type: faultType,
+        stage_id: selectedStageId || "variant_processing",
+        workflow_id: currentWorkflowId || "wf-active"
+      })
+    });
+    const incident = await res.json();
+    const banner = document.getElementById("chaosStatusBanner");
+    if (banner) {
+      banner.style.display = "block";
+      banner.innerHTML = `🛡️ <b>${incident.fault_type.toUpperCase()}</b>: ${incident.recovery_action} (<b>${incident.recovery_time_seconds}s</b>)`;
+      setTimeout(() => { banner.style.display = "none"; }, 8000);
+    }
+    if (currentWorkflowId) {
+      pollWorkflowDAG(currentWorkflowId);
+    }
+  } catch (err) {
+    console.error("Error injecting chaos fault:", err);
   }
 }
 

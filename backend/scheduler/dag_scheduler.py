@@ -123,26 +123,56 @@ class DAGScheduler:
                         logger.warning(f"Could not record profiling for {stage_id}: {exc}")
 
                 elif self.job_manager.is_job_failed(job_name):
+                    stage_def = submitted_stage_defs[stage_id]
+                    stage_status = status.stages[stage_id]
+                    auto_heal = getattr(workflow_def, "self_healing", False) or getattr(self, "enable_self_healing", False)
+
+                    # Cloud Self-Healing: Intercept failure & auto-escalate to Tier-3 Fallback
+                    if auto_heal and stage_status.retry_count < 1:
+                        stage_status.retry_count += 1
+                        logger.warning(
+                            f"[CloudPilot Self-Healing] Auto-healing triggered for failed stage {stage_id}. "
+                            f"Auto-escalating to Tier-3 Fallback (2000m CPU, 2048Mi RAM) and retrying..."
+                        )
+                        status.self_healing_events.append({
+                            "stage_id": stage_id,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "reason": "PodFailureOrOOM",
+                            "action": "Tier3_Fallback_Escalation",
+                            "retry_count": stage_status.retry_count
+                        })
+                        # Escalate to Tier 3 Safe Fallback
+                        fallback_stage_def = stage_def.model_copy(update={
+                            "cpu": "2000m",
+                            "memory": "2048Mi",
+                            "limit_memory": "4096Mi"
+                        })
+                        new_job = build_job(workflow_id, fallback_stage_def, node_type="r5.xlarge")
+                        new_job_name = self.job_manager.create_job(new_job)
+                        stage_status.job_name = new_job_name
+                        stage_status.state = StageState.RUNNING
+                        submitted_stage_defs[stage_id] = fallback_stage_def
+                        continue
+
                     logger.error(f"[CloudPilot] Stage failed: {stage_id}")
-                    status.stages[stage_id].state = StageState.FAILED
-                    status.stages[stage_id].completed_at = datetime.now(timezone.utc)
-                    status.stages[stage_id].error = "Kubernetes Job failed"
+                    stage_status.state = StageState.FAILED
+                    stage_status.completed_at = datetime.now(timezone.utc)
+                    stage_status.error = "Kubernetes Job failed"
                     newly_failed.append(stage_id)
 
                     try:
                         logs = self.job_manager.get_job_logs(job_name)
-                        stage_def = submitted_stage_defs[stage_id]
                         record = self.profiling_collector.process_stage_completion(
-                            workflow_id, stage_def, status.stages[stage_id], logs
+                            workflow_id, stage_def, stage_status, logs
                         )
                         if record:
-                            status.stages[stage_id].actual_metrics = {
+                            stage_status.actual_metrics = {
                                 "actual_cpu": record.get("actual_cpu"),
                                 "actual_memory_mb": record.get("actual_memory_mb"),
                                 "runtime_seconds": record.get("runtime_seconds"),
                             }
                         self.profiling_collector.append_decision_audit(
-                            workflow_id, stage_def, status.stages[stage_id]
+                            workflow_id, stage_def, stage_status
                         )
                     except Exception as exc:
                         logger.warning(f"Could not record failure profiling for {stage_id}: {exc}")
@@ -207,7 +237,12 @@ class DAGScheduler:
                 stage_def, dag, completed, workflow_start, deadline_seconds, status
             )
 
-        job = build_job(workflow_id, stage_def)
+        # Heterogeneous cloud node placement
+        from backend.k8s.node_types import determine_optimal_node_type
+        node_type = determine_optimal_node_type(stage_def.type)
+        status.stages[stage_id].node_type = node_type
+
+        job = build_job(workflow_id, stage_def, node_type=node_type)
         job_name = self.job_manager.create_job(job)
 
         status.stages[stage_id].state = StageState.RUNNING

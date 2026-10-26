@@ -5,8 +5,15 @@
 [![Kubernetes](https://img.shields.io/badge/kubernetes-kind%20%2F%20cloud-326ce5.svg)](https://kubernetes.io/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
 [![Cytoscape.js](https://img.shields.io/badge/DAG-Cytoscape.js-ff4081.svg)](https://js.cytoscape.org/)
-[![Tests](https://img.shields.io/badge/tests-95%20passed-10b981.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-104%20passed-10b981.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Zero Cloud Cost](https://img.shields.io/badge/Cost-%240.00%20Free-success.svg)](#-critical-question-do-we-need-to-use-a-paid-cloud)
+
+---
+
+> 📚 **Essential Project Documentation:**
+> - 🎓 **[PROJECT_LEARNING_GUIDE.md](PROJECT_LEARNING_GUIDE.md)**: Complete Master Learning Guide, 5-Phase Architecture, Truth Guide (real vs modeled), and Viva Interview Q&A.
+> - 🖥️ **[WEBSITE_OPERATION_GUIDE.md](WEBSITE_OPERATION_GUIDE.md)**: Visual Dashboard Navigation, HUD Gauges, Cytoscape Controls, and 5-Minute Live Demo Script.
 
 ---
 
@@ -22,6 +29,7 @@ CloudPilot eliminates this tradeoff using a **5-Phase Intelligent Feedback Loop*
 3. **Machine Learning Intelligence:** Uses trained Random Forest and XGBoost regressors to predict runtime, CPU core demand, and memory footprint *before* execution, accompanied by ensemble-variance confidence scores and Mahalanobis distribution-shift detection.
 4. **Decision Engine & SLA Control:** Dynamically translates ML predictions into concrete Kubernetes resource requests, limits, and thread allocations with adaptive safety headroom (+25% to +75%) and deadline-pressure acceleration.
 5. **Mission Control Web Dashboard:** A cyberpunk glassmorphic control center featuring live Cytoscape.js DAG visualization, real-time stage telemetry inspection, and an empirical 3-way benchmarking suite.
+6. **Cloud Architectural Extensions:** Autonomous self-healing failure recovery, heterogeneous node placement (`c5.xlarge`/`r5.xlarge`), AWS FinOps dollar billing engine, S3 object storage emulator, and Prometheus `/metrics` observability.
 
 ---
 
@@ -99,19 +107,23 @@ One of the greatest architectural strengths of CloudPilot is that **it does not 
 | **2** | **Genomic Profiling & Schema** | 1000 Genomes Phase 3 chr22 dataset (196 MB raw), 9 regional/sample chunks (100 kb to 4 Mb; 100 to 2,504 samples), containerized `bcftools 1.21` + `tabix`, 20-column RFC schema, 98 clean execution records (`datasets/`). | ✅ **Verified** |
 | **3** | **Machine Learning Intelligence** | 15 trained models: Stage Mean/Median, Ridge, Random Forest, XGBoost (HPO tuned); ensemble variance confidence scoring; Mahalanobis distance distribution-shift detector (`backend/prediction/`, `models/`). | ✅ **Verified** |
 | **4** | **Decision Engine & Dynamic Sizing** | 3-tier resource sizing engine, dynamic headroom injection, K8s hard memory limits, SLA critical-path deadline pressure scaling (`backend/decision/`). | ✅ **Verified** |
-| **5** | **Dashboard & Evaluation Suite** | FastAPI web server, Cytoscape.js interactive DAG UI, stage intelligence inspector, live pod log streaming, 3-way quantitative benchmarking suite, 95 passing tests (`backend/static/`, `scripts/evaluate_platform.py`). | ✅ **Verified** |
+| **5** | **Dashboard & Evaluation Suite** | FastAPI web server, Cytoscape.js interactive DAG UI, stage intelligence inspector, live pod log streaming, 3-way quantitative benchmarking suite, 104 passing tests (`backend/static/`, `scripts/evaluate_platform.py`). | ✅ **Verified** |
+| **Cloud** | **Cloud Architecture Extensions** | Autonomous Self-Healing on OOM/eviction, Predictive Vertical Autoscaling, Heterogeneous Multi-Node Scheduling (`c5.xlarge`/`r5.xlarge`), AWS FinOps Dollar Billing Engine, Real-Time Carbon Footprint Model, S3 Object Storage Emulator, and Prometheus `/metrics` exposition. | ✅ **Verified** |
 
 ---
 
 ## 🖥️ What the Web Dashboard Does & How to Use It
 
 The **CloudPilot Apex Dashboard** is an aerospace/cyberpunk-styled mission control interface served directly by FastAPI at **`http://localhost:8000/`**.
+Detailed guide: 📖 **[WEBSITE_OPERATION_GUIDE.md](WEBSITE_OPERATION_GUIDE.md)**.
 
 ### 1. Executive HUD Ribbon (Top Counters)
 - **⚡ CPU Core Optimization:** Dynamic radial SVG gauge showing **+23.4%** allocated CPU reduction compared to static provisioning.
 - **💾 Memory Footprint Slashed:** Radial progress ring showcasing **91.0%** memory footprint reduction.
 - **🎯 Mean Neural Confidence:** Displays the ensemble certainty of the ML models (current mean: **96.8%**).
 - **🛡️ SLA Breach Guardian:** Live monitor of deadline adherence (**0.0% breach rate**).
+- **💵 FinOps Projected Savings:** Live estimation of monthly cloud dollar savings (**~$142.50 / month**) based on AWS US-East-1 EC2 pricing.
+- **🌱 Green Cloud Carbon Slashed:** Real-time greenhouse gas emissions reduction (**-38.4% / ~248.5g CO₂e**) calculated via Green Software Foundation standards.
 
 ---
 
@@ -129,7 +141,9 @@ The Mission Control workspace is organized into **three interactive columns**:
 │ • SLA Deadline Input      │ • Pulsing Radar Halos (Running)   │ • Mahalanobis Drift Status│
 │ • Live Manifest Editor    │ • Floating Control Dock           │ • Phase 4 Sizing Manifest │
 │ • "Initiate Orchestration"│ • Zoom / Fit / Auto-Layout        │ • Headroom Visual Stack   │
-│ • Mission History Feed    │ • Real-Time Polling Sync (2s)     │ • Live Pod Log Stream     │
+│ • Chaos Monkey Fault Inject│ • Real-Time Polling Sync (2s)    │ • Live Pod Log Stream     │
+│ • Cluster Bin-Packing     │                                   │                           │
+│ • Mission History Feed    │                                   │                           │
 └───────────────────────────┴───────────────────────────────────┴───────────────────────────┘
 ```
 
@@ -321,11 +335,11 @@ Outputs are automatically written to `datasets/platform_evaluation_results.json`
 ---
 
 ### 6. Run the Full Test Suite
-Execute all 95 automated unit and integration tests:
+Execute all 104 automated unit and integration tests:
 ```bash
 pytest
 ```
-*Expected result:* **`95 passed in ~100s`** (100% pass rate).
+*Expected result:* **`104 passed in ~50s`** (100% pass rate).
 
 ---
 

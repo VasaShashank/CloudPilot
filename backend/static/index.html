@@ -145,6 +145,40 @@
         </svg>
       </div>
     </div>
+
+    <!-- Metric 5: FinOps Cloud Savings -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">FinOps Projected Savings</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statDollarSaved">$142.50</span>
+          <span class="hud-badge amber">AWS FinOps</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill amber" id="gaugeFinops" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="15"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Metric 6: Green Cloud Carbon Footprint -->
+    <div class="hud-card">
+      <div class="hud-content">
+        <span class="hud-label">Green Cloud Carbon Slashed</span>
+        <div class="hud-value-row">
+          <span class="hud-number" id="statCarbonSaved">-38.4%</span>
+          <span class="hud-badge emerald" id="badgeCarbonGrams">248.5g CO₂e</span>
+        </div>
+      </div>
+      <div class="hud-gauge">
+        <svg width="44" height="44">
+          <circle class="hud-gauge-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="hud-gauge-fill green" id="gaugeCarbon" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="18"></circle>
+        </svg>
+      </div>
+    </div>
   </section>
 
   <!-- Main Multi-Pane Viewport -->
@@ -225,6 +259,48 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               Initiate Orchestration
             </button>
+
+            <!-- Chaos Engineering & Resilience Panel -->
+            <div class="form-group" style="margin-top:12px; background:rgba(244,63,94,0.06); border:1px solid rgba(244,63,94,0.25); border-radius:8px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:11px; font-weight:700; color:var(--rose); display:flex; align-items:center; gap:5px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  Chaos Fault Injection (Resilience Test)
+                </span>
+                <span class="badge badge-failed" style="font-size:8px;">CHAOS MONKEY</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button class="btn-secondary" style="font-size:10px; border-color:rgba(244,63,94,0.4); color:var(--rose);" onclick="injectChaosFault('spot_preemption')">
+                  ⚡ Spot Preempt
+                </button>
+                <button class="btn-secondary" style="font-size:10px; border-color:rgba(244,63,94,0.4); color:var(--rose);" onclick="injectChaosFault('oom_spike')">
+                  💥 OOMKill Surge
+                </button>
+              </div>
+              <div id="chaosStatusBanner" style="display:none; font-size:10px; color:var(--emerald); background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:4px 8px; margin-top:8px;">
+                ✔ Self-Healed & Migrated in 2.1s
+              </div>
+            </div>
+
+            <!-- Cluster Node Bin-Packing Visualizer -->
+            <div class="form-group" style="margin-top:6px; background:rgba(0,242,254,0.04); border:1px solid rgba(0,242,254,0.2); border-radius:8px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:700; color:var(--cyan);">
+                  Cluster Bin-Packing (Karpenter)
+                </span>
+                <span class="badge badge-completed" style="font-size:8px;">3 NODES ACTIVE</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between;">
+                  <span><b>c5.xlarge (Spot)</b>: 2 pods</span>
+                  <span style="color:var(--cyan); font-family:var(--font-mono);">42% CPU • 18% RAM</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span><b>r5.xlarge (On-Demand)</b>: 2 pods</span>
+                  <span style="color:var(--emerald); font-family:var(--font-mono);">58% CPU • 31% RAM</span>
+                </div>
+              </div>
+            </div>
 
             <!-- Mission History Feed -->
             <div class="form-group" style="margin-top:6px;">

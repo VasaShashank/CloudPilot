@@ -1,0 +1,27 @@
+# CloudPilot Multi-Node Heterogeneous Cloud Simulation Cluster
+# Simulates a multi-node cloud environment on local Docker via kind.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cloudpilot
+nodes:
+  # 1. Control Plane Node
+  - role: control-plane
+    labels:
+      node.kubernetes.io/instance-type: "t3.medium"
+      workload-tier: "system"
+
+  # 2. Compute-Optimized Worker Node (c5.xlarge equivalent)
+  # Targeted by vcf_stats, analysis, and quality_control stages
+  - role: worker
+    labels:
+      node.kubernetes.io/instance-type: "c5.xlarge"
+      workload-tier: "compute-optimized"
+      node.kubernetes.io/lifecycle: "spot"
+
+  # 3. Memory-Optimized Worker Node (r5.xlarge equivalent)
+  # Targeted by variant_processing, filtering, and aggregation stages
+  - role: worker
+    labels:
+      node.kubernetes.io/instance-type: "r5.xlarge"
+      workload-tier: "memory-optimized"
+      node.kubernetes.io/lifecycle: "on-demand"

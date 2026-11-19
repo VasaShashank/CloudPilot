@@ -1,0 +1,1 @@
+# CloudPilot Cloud Storage module

@@ -51,8 +51,16 @@ pytest -q
 
 ## 3. Dashboard walkthrough
 
-1. Open `http://localhost:8000/dashboard`.
+> 📖 **Comprehensive Guides:**
+> - For a complete visual manual and 5-minute live presentation script, see **[`WEBSITE_OPERATION_GUIDE.md`](../WEBSITE_OPERATION_GUIDE.md)**.
+> - For the master viva theory defense and architecture guide, see **[`PROJECT_LEARNING_GUIDE.md`](../PROJECT_LEARNING_GUIDE.md)**.
+
+1. Open `http://localhost:8000/dashboard` (or `http://localhost:8000/`).
 2. Select **Parallel** to demonstrate DAG dependencies, or **Genomic Pipeline** for genomic stages.
-3. Set a deadline, submit the workflow, and watch node states move from PENDING to RUNNING to COMPLETED.
-4. Select a node to show prediction confidence, shift status, dynamic CPU/memory decision, telemetry, and pod logs.
-5. Open the evaluation tab to compare static, unmanaged, and CloudPilot allocation replay metrics.
+3. Observe the top HUD: 6 live gauges including **CPU Optimization**, **Memory Slashed (91%)**, **FinOps Savings ($142.50)**, and **Green Cloud Carbon Slashed (-38.4%)**.
+4. Set a deadline, submit the workflow, and watch node states move from PENDING to RUNNING to COMPLETED with Cytoscape animations.
+5. Select a node to inspect prediction confidence, distribution-shift status, dynamic CPU/memory decision, telemetry, and pod logs.
+6. Test **Chaos Monkey**: Click `Preempt Spot Node` or `Inject OOM Spike` in the cockpit to witness autonomous Tier-3 self-healing recovery.
+7. Open the evaluation tab to compare static, unmanaged, and CloudPilot allocation replay metrics.
+8. Inspect cloud metrics via Prometheus at `http://localhost:8000/metrics`.
+

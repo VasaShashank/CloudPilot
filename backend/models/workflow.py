@@ -32,6 +32,7 @@ class WorkflowDefinition(BaseModel):
     name: str
     stages: list[StageDefinition]
     deadline_seconds: Optional[int] = None  # Phase 4: SLA deadline for the entire workflow
+    self_healing: Optional[bool] = False    # Auto-heal failed/evicted stages with Tier-3 Fallback
 
 class StageStatus(BaseModel):
     """Runtime status of a single stage."""
@@ -45,6 +46,9 @@ class StageStatus(BaseModel):
     prediction: Optional[dict] = None
     decision: Optional[dict] = None
     actual_metrics: Optional[dict] = None
+    node_type: Optional[str] = None
+    retry_count: int = 0
+    is_spot: bool = False
 
 class WorkflowStatus(BaseModel):
     """Runtime status of an entire workflow."""
@@ -56,3 +60,4 @@ class WorkflowStatus(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
+    self_healing_events: list[dict] = Field(default_factory=list)

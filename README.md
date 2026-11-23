@@ -15,6 +15,7 @@
 > 📚 **Essential Project Documentation:**
 > - 🎓 **[PROJECT_LEARNING_GUIDE.md](PROJECT_LEARNING_GUIDE.md)**: Complete Master Learning Guide, 5-Phase Architecture, Truth Guide (real vs modeled), and Viva Interview Q&A.
 > - 🖥️ **[WEBSITE_OPERATION_GUIDE.md](WEBSITE_OPERATION_GUIDE.md)**: Visual Dashboard Navigation, HUD Gauges, Cytoscape Controls, and 5-Minute Live Demo Script.
+> - ☁️ **[AWS_FREE_TIER_DEPLOYMENT_GUIDE.md](AWS_FREE_TIER_DEPLOYMENT_GUIDE.md)**: Complete Zero-Cost AWS Deployment Guide (EC2, S3, CloudWatch, K3s) with real cloud metrics and a $0.00 bill.
 
 ---
 

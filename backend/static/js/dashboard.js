@@ -351,6 +351,7 @@ function onTemplateChange() {
   const select = document.getElementById("templateSelect");
   const editor = document.getElementById("yamlEditor");
   const presetGroup = document.getElementById("workloadPresetGroup");
+  const samplePanel = document.getElementById("sampleSheetPanel");
   const val = select.value;
 
   if (val === "genomic_pipeline") {
@@ -359,8 +360,117 @@ function onTemplateChange() {
     presetGroup.style.display = "none";
   }
 
+  if (val === "spreadsheet") {
+    if (samplePanel) {
+      samplePanel.style.borderColor = "var(--cyan)";
+      samplePanel.style.boxShadow = "0 0 16px rgba(0, 242, 254, 0.35)";
+    }
+  } else {
+    if (samplePanel) {
+      samplePanel.style.borderColor = "rgba(0, 242, 254, 0.25)";
+      samplePanel.style.boxShadow = "none";
+    }
+  }
+
   if (workflowTemplates[val]) {
     editor.value = workflowTemplates[val];
+  }
+}
+
+// -------------------------------------------------------------------------- //
+// Clinical Sample Sheet (Excel / CSV) Ingestion
+// -------------------------------------------------------------------------- //
+function downloadSampleSheet(format = 'xlsx') {
+  playBeep(520, 0.05);
+  const link = document.createElement('a');
+  link.href = `/api/workflows/template/spreadsheet?format=${encodeURIComponent(format)}`;
+  link.download = `genomic_sample_sheet_template.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function handleSpreadsheetUpload(event) {
+  const fileInput = event.target;
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+
+  const btnUpload = document.getElementById("btnUploadSpreadsheet");
+  const banner = document.getElementById("spreadsheetStatusBanner");
+  const originalBtnText = btnUpload ? btnUpload.innerHTML : "";
+
+  try {
+    if (btnUpload) {
+      btnUpload.disabled = true;
+      btnUpload.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10"></path>
+        </svg>
+        Ingesting Spreadsheet...
+      `;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/workflows/upload-spreadsheet", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ detail: "Unknown error" }));
+      throw new Error(errData.detail || `Upload failed with HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    playLaunchChime();
+
+    // Populate live YAML editor
+    const editor = document.getElementById("yamlEditor");
+    if (editor && data.yaml_manifest) {
+      editor.value = data.yaml_manifest;
+    }
+
+    // Set template selector to spreadsheet
+    const select = document.getElementById("templateSelect");
+    if (select) select.value = "spreadsheet";
+
+    // Show success banner
+    if (banner) {
+      banner.style.display = "block";
+      banner.style.borderColor = "rgba(16, 185, 129, 0.5)";
+      banner.style.background = "rgba(16, 185, 129, 0.12)";
+      banner.style.color = "var(--emerald)";
+      banner.innerHTML = `
+        ✅ <b>${file.name}</b> successfully parsed!<br>
+        Ingested <b>${data.stage_count} stages</b> into workflow <code>${data.name}</code> (ID: <code>${data.workflow_id}</code>).
+      `;
+      setTimeout(() => { banner.style.display = "none"; }, 10000);
+    }
+
+    // Switch active workflow and update DAG graph
+    currentWorkflowId = data.workflow_id;
+    await fetchWorkflows();
+    await updateWorkflowDAG(data.workflow_id);
+
+  } catch (err) {
+    playAlarmBeep();
+    if (banner) {
+      banner.style.display = "block";
+      banner.style.borderColor = "rgba(244, 63, 94, 0.5)";
+      banner.style.background = "rgba(244, 63, 94, 0.12)";
+      banner.style.color = "var(--rose)";
+      banner.innerHTML = `⚠️ <b>Ingestion Error:</b> ${err.message}`;
+    }
+  } finally {
+    if (btnUpload) {
+      btnUpload.disabled = false;
+      btnUpload.innerHTML = originalBtnText;
+    }
+    // Clear input so selecting the same file triggers onchange
+    fileInput.value = "";
   }
 }
 

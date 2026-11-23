@@ -211,6 +211,7 @@
                 <option value="genomic_pipeline">🧬 5-Stage Live Genomic Pipeline (bcftools)</option>
                 <option value="linear">➡️ Linear 4-Stage Chain</option>
                 <option value="parallel">💠 Parallel Diamond Pipeline</option>
+                <option value="spreadsheet">📊 Ingest from Excel / CSV Sample Sheet</option>
                 <option value="custom">✍️ Custom Workflow Manifest</option>
               </select>
             </div>
@@ -241,6 +242,43 @@
                 <span style="color:var(--amber); font-family:var(--font-mono); font-size:10px;">DEADLINE-AWARE</span>
               </label>
               <input type="number" class="form-input" id="slaInput" placeholder="e.g. 60" value="60">
+            </div>
+
+            <!-- Clinical Sample Sheet (Excel / CSV Ingestion) Panel -->
+            <div class="form-group" id="sampleSheetPanel" style="margin-top:4px; background:rgba(0,242,254,0.04); border:1px solid rgba(0,242,254,0.25); border-radius:8px; padding:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:700; color:var(--cyan); display:flex; align-items:center; gap:5px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Clinical Sample Sheet (Excel / CSV)
+                </span>
+                <span class="badge badge-completed" style="font-size:8px;">BATCH INGESTION</span>
+              </div>
+              <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:8px; line-height:1.4;">
+                Define custom genomic stages, variants & sample sizes in a spreadsheet and ingest directly.
+              </div>
+              
+              <!-- Download Template Buttons -->
+              <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button type="button" class="btn-secondary" style="flex:1; font-size:10px; display:flex; align-items:center; justify-content:center; gap:4px; padding:6px 4px;" onclick="downloadSampleSheet('xlsx')" title="Download formatted Excel spreadsheet template">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  📥 Template (.xlsx)
+                </button>
+                <button type="button" class="btn-secondary" style="flex:1; font-size:10px; display:flex; align-items:center; justify-content:center; gap:4px; padding:6px 4px;" onclick="downloadSampleSheet('csv')" title="Download standard CSV template">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  📥 Template (.csv)
+                </button>
+              </div>
+
+              <!-- Upload File Zone -->
+              <input type="file" id="spreadsheetFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleSpreadsheetUpload(event)">
+              <button type="button" class="btn-secondary" id="btnUploadSpreadsheet" style="width:100%; font-size:11px; font-weight:700; border-color:var(--cyan); color:var(--cyan); display:flex; align-items:center; justify-content:center; gap:6px; padding:8px; cursor:pointer;" onclick="document.getElementById('spreadsheetFileInput').click()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                📤 Upload & Ingest Sample Sheet
+              </button>
+
+              <!-- Upload Success / Notification Banner -->
+              <div id="spreadsheetStatusBanner" style="display:none; font-size:10.5px; color:var(--emerald); background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:5px; padding:6px 8px; margin-top:8px; line-height:1.4;">
+              </div>
             </div>
 
             <!-- YAML Code Manifest -->

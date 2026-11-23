@@ -8,7 +8,7 @@ import uuid
 import threading
 from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Body
-from fastapi.responses import PlainTextResponse, FileResponse
+from fastapi.responses import PlainTextResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -436,6 +436,76 @@ def get_storage_objects():
     """Return cloud object storage (S3 emulator) inventory and presigned URLs."""
     from backend.storage.s3_storage import cloud_storage
     return cloud_storage.list_objects()
+
+# -------------------------------------------------------------------------- #
+# Spreadsheet Sample Sheet (Excel / CSV) Endpoints                          #
+# -------------------------------------------------------------------------- #
+
+@app.get("/api/workflows/template/spreadsheet")
+def download_spreadsheet_template(format: str = "xlsx"):
+    """
+    Download a pre-formatted clinical genomic sample sheet template
+    in Excel (.xlsx) or CSV format.
+    """
+    from backend.workflow.spreadsheet_parser import generate_template
+    fmt = format.lower()
+    content = generate_template(file_format=fmt)
+    if fmt == "csv":
+        media_type = "text/csv"
+        filename = "genomic_sample_sheet_template.csv"
+    else:
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = "genomic_sample_sheet_template.xlsx"
+        
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.post("/api/workflows/upload-spreadsheet")
+async def upload_spreadsheet_workflow(file: UploadFile = File(...)):
+    """
+    Parse an uploaded clinical genomic sample sheet (Excel or CSV),
+    dynamically construct the workflow DAG, initialize stage metadata,
+    and register it for prediction & orchestration.
+    """
+    from backend.workflow.spreadsheet_parser import parse_spreadsheet
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+            
+        workflow_def, yaml_str = parse_spreadsheet(content, file.filename or "sample_sheet.xlsx")
+        
+        workflow_id = uuid.uuid4().hex[:8]
+        status = WorkflowStatus(
+            workflow_id=workflow_id,
+            name=workflow_def.name,
+            state=WorkflowState.PENDING,
+            stages={
+                s.id: StageStatus(id=s.id, type=s.type, state=StageState.PENDING)
+                for s in workflow_def.stages
+            }
+        )
+        
+        workflows[workflow_id] = status
+        workflow_definitions[workflow_id] = workflow_def
+        
+        return {
+            "workflow_id": workflow_id,
+            "name": workflow_def.name,
+            "yaml_manifest": yaml_str,
+            "stage_count": len(workflow_def.stages),
+            "status": status.model_dump(mode="json")
+        }
+    except WorkflowValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Spreadsheet Validation Error: {e}")
+    except CyclicDependencyError as e:
+        raise HTTPException(status_code=400, detail=f"Cyclic Dependency Error: {e}")
+    except Exception as e:
+        logger.error(f"Error parsing spreadsheet {file.filename}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import sys

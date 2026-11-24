@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudpilot
+  namespace: cloudpilot
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: cloudpilot
+  template:
+    metadata:
+      labels:
+        app: cloudpilot
+    spec:
+      serviceAccountName: cloudpilot
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: initialize-datasets
+          image: cloudpilot:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - cp -rn /app/datasets/. /persist/
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: datasets
+              mountPath: /persist
+      containers:
+        - name: cloudpilot
+          image: cloudpilot:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: datasets
+              mountPath: /app/datasets
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: datasets
+          persistentVolumeClaim:
+            claimName: cloudpilot-datasets
+        - name: tmp
+          emptyDir: {}

@@ -50,6 +50,9 @@ if ($hasKind) {
 Write-Host "Applying Kubernetes namespace..."
 kubectl apply -f ./k8s/namespace.yaml
 
+Write-Host "Applying CloudPilot Kubernetes permissions..."
+kubectl apply -f ./k8s/rbac.yaml
+
 Write-Host "CloudPilot cluster setup completed successfully!"
 Write-Host "Next steps:"
 Write-Host "1. Deploy the CloudPilot backend."

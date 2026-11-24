@@ -58,9 +58,9 @@
     <!-- Cluster & System Telemetry Status -->
     <div class="header-status">
       <div class="telemetry-chip">
-        <span class="pulse-dot green"></span>
-        <span style="font-weight:600;">kind-cluster:</span>
-        <span style="color:var(--emerald); font-family:var(--font-mono);">Online (1.31)</span>
+        <span class="pulse-dot cyan" id="clusterStatusDot"></span>
+        <span style="font-weight:600;">Kubernetes:</span>
+        <span id="clusterStatusLabel" role="status" aria-live="polite" style="color:var(--cyan); font-family:var(--font-mono);">Checking…</span>
       </div>
 
       <div class="telemetry-chip">
@@ -324,20 +324,12 @@
             <div class="form-group" style="margin-top:6px; background:rgba(0,242,254,0.04); border:1px solid rgba(0,242,254,0.2); border-radius:8px; padding:10px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <span style="font-size:11px; font-weight:700; color:var(--cyan);">
-                  Cluster Bin-Packing (Karpenter)
+                  Kubernetes Node Requests
                 </span>
-                <span class="badge badge-completed" style="font-size:8px;">3 NODES ACTIVE</span>
+                <span id="clusterNodesCount" style="font-size:8px; color:var(--amber); font-family:var(--font-mono);">Loading</span>
               </div>
-              <div style="font-size:10px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
-                <div style="display:flex; justify-content:space-between;">
-                  <span><b>c5.xlarge (Spot)</b>: 2 pods</span>
-                  <span style="color:var(--cyan); font-family:var(--font-mono);">42% CPU • 18% RAM</span>
-                </div>
-                <div style="display:flex; justify-content:space-between;">
-                  <span><b>r5.xlarge (On-Demand)</b>: 2 pods</span>
-                  <span style="color:var(--emerald); font-family:var(--font-mono);">58% CPU • 31% RAM</span>
-                </div>
-              </div>
+              <div id="clusterNodesInventory" style="font-size:9px; color:var(--text-muted); display:flex; flex-direction:column; gap:5px;">Querying Kubernetes API…</div>
+              <div style="font-size:8px; color:var(--text-muted); margin-top:5px;">CPU/RAM show pod requests, not live utilization. Instance/lifecycle values are node labels.</div>
             </div>
 
             <!-- Mission History Feed -->
@@ -709,6 +701,6 @@
   </main>
 
   <!-- Dashboard JavaScript Logic -->
-  <script src="/static/js/dashboard.js?v=20260928_2"></script>
+  <script src="/static/js/dashboard.js?v=20261123_k8s-nodes"></script>
 </body>
 </html>

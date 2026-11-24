@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
+from kubernetes.client.rest import ApiException
 from backend.main import app, workflows, workflow_definitions
 from backend.models.workflow import WorkflowStatus, StageStatus, StageState, WorkflowState
 
@@ -10,6 +11,17 @@ client = TestClient(app)
 def clear_state():
     workflows.clear()
     workflow_definitions.clear()
+
+def test_health_endpoint():
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+def test_cluster_status_requires_live_api_access():
+    with patch("backend.main.get_core_client", side_effect=ApiException(status=403, reason="Forbidden")):
+        response = client.get("/api/cluster/status")
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Kubernetes API is unavailable or access was denied."
 
 def test_api_create_workflow_via_file_upload():
     yaml_str = """

@@ -11,13 +11,17 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.responses import PlainTextResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from kubernetes import config as kubernetes_config
+from kubernetes.client.rest import ApiException
+from urllib3.exceptions import HTTPError as Urllib3HTTPError
 
 from backend.workflow.parser import parse_workflow_file, parse_workflow_string, WorkflowParseError
 from backend.workflow.validator import validate_workflow, WorkflowValidationError
 from backend.workflow.dag import WorkflowDAG, CyclicDependencyError
 from backend.scheduler.dag_scheduler import DAGScheduler
 from backend.models.workflow import WorkflowStatus, WorkflowDefinition, WorkflowState, StageStatus, StageState
-from backend.config import API_HOST, API_PORT
+from backend.config import API_HOST, API_PORT, NAMESPACE
+from backend.k8s.client import get_core_client
 from backend.k8s.job_manager import JobManager
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
@@ -36,6 +40,10 @@ workflow_definitions: dict[str, WorkflowDefinition] = {}
 class RunResponse(BaseModel):
     message: str
     workflow_id: str
+
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
 
 @app.post("/workflows")
 async def create_workflow(file: Optional[UploadFile] = File(None), yaml_body: str = Body(None)):
@@ -135,6 +143,21 @@ def get_stage_logs(workflow_id: str, stage_id: str):
     manager = JobManager()
     logs = manager.get_job_logs(job_name)
     return logs
+
+@app.get("/workflows/{workflow_id}/stages/{stage_id}/pods")
+def get_stage_pods(workflow_id: str, stage_id: str):
+    if workflow_id not in workflows:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    status = workflows[workflow_id]
+    if stage_id not in status.stages:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} not found in workflow")
+
+    job_name = status.stages[stage_id].job_name
+    if not job_name:
+        raise HTTPException(status_code=400, detail="Job has not been created yet for this stage")
+
+    return JobManager().get_job_pod_status(job_name)
 
 # -------------------------------------------------------------------------- #
 # Phase 5: Dashboard & Visualization Endpoints                                #
@@ -427,9 +450,33 @@ def get_chaos_history():
 
 @app.get("/api/cluster/nodes")
 def get_cluster_nodes():
-    """Return heterogeneous cloud cluster nodes inventory with live bin-packing metrics."""
+    """Return live Kubernetes node inventory and CloudPilot pod resource requests."""
     from backend.k8s.node_types import get_cluster_nodes_inventory
-    return get_cluster_nodes_inventory()
+    try:
+        return get_cluster_nodes_inventory()
+    except (ApiException, kubernetes_config.ConfigException, Urllib3HTTPError) as e:
+        logger.error("Could not retrieve Kubernetes nodes: %s", e)
+        raise HTTPException(status_code=503, detail="Kubernetes API is unavailable or access was denied.") from e
+
+@app.get("/api/cluster/status")
+def get_cluster_status():
+    """Report connectivity only after a successful live Kubernetes API request."""
+    try:
+        nodes = get_core_client().list_node(_request_timeout=5).items
+    except (ApiException, kubernetes_config.ConfigException, Urllib3HTTPError) as e:
+        logger.error("Kubernetes connectivity check failed: %s", e)
+        raise HTTPException(status_code=503, detail="Kubernetes API is unavailable or access was denied.") from e
+
+    ready_nodes = sum(
+        any(condition.type == "Ready" and condition.status == "True" for condition in (node.status.conditions or []))
+        for node in nodes
+    )
+    return {
+        "connected": True,
+        "namespace": NAMESPACE,
+        "nodes": len(nodes),
+        "ready_nodes": ready_nodes
+    }
 
 @app.get("/api/storage/objects")
 def get_storage_objects():

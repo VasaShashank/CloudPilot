@@ -52,11 +52,79 @@ document.addEventListener("DOMContentLoaded", () => {
   loadWorkloads();
   fetchWorkflows();
   loadEvaluationSummary();
+  loadClusterStatus();
+  loadClusterNodes();
   animateHudCounters();
+  setInterval(loadClusterStatus, 15000);
+  setInterval(loadClusterNodes, 15000);
 
   // Start background sync
   startPolling();
 });
+
+async function loadClusterStatus() {
+  const dot = document.getElementById("clusterStatusDot");
+  const label = document.getElementById("clusterStatusLabel");
+  if (!dot || !label) return;
+
+  try {
+    const response = await fetch("/api/cluster/status");
+    if (!response.ok) throw new Error(`Kubernetes status returned HTTP ${response.status}`);
+    const status = await response.json();
+    const allNodesReady = status.nodes > 0 && status.ready_nodes === status.nodes;
+
+    dot.className = `pulse-dot ${allNodesReady ? "green" : "rose"}`;
+    label.textContent = allNodesReady
+      ? `Connected (${status.ready_nodes}/${status.nodes} nodes)`
+      : `Degraded (${status.ready_nodes}/${status.nodes} nodes ready)`;
+    label.style.color = allNodesReady ? "var(--emerald)" : "var(--rose)";
+  } catch (error) {
+    dot.className = "pulse-dot rose";
+    label.textContent = "Unavailable";
+    label.style.color = "var(--rose)";
+    console.warn("Kubernetes connectivity check failed:", error);
+  }
+}
+
+async function loadClusterNodes() {
+  const count = document.getElementById("clusterNodesCount");
+  const inventory = document.getElementById("clusterNodesInventory");
+  if (!count || !inventory) return;
+
+  try {
+    const response = await fetch("/api/cluster/nodes");
+    if (!response.ok) throw new Error(`Kubernetes node inventory returned HTTP ${response.status}`);
+    const nodes = await response.json();
+    const readyNodes = nodes.filter(node => node.status === "Ready").length;
+
+    count.textContent = `${readyNodes}/${nodes.length} READY`;
+    count.style.color = nodes.length > 0 && readyNodes === nodes.length ? "var(--emerald)" : "var(--rose)";
+    inventory.replaceChildren();
+
+    if (nodes.length === 0) {
+      inventory.textContent = "No Kubernetes nodes reported.";
+      return;
+    }
+
+    nodes.forEach(node => {
+      const row = document.createElement("div");
+      row.style.cssText = "border-top:1px solid rgba(148,163,184,0.12); padding-top:4px;";
+      const title = document.createElement("div");
+      title.textContent = `${node.name} · ${node.instance_type} · ${node.status}`;
+      const details = document.createElement("div");
+      details.style.color = "var(--cyan)";
+      details.style.fontFamily = "var(--font-mono)";
+      details.textContent = `${node.packed_pod_count} CloudPilot pods · CPU requests ${Number(node.cpu_requested_pct || 0).toFixed(1)}% · RAM requests ${Number(node.memory_requested_pct || 0).toFixed(1)}%`;
+      row.append(title, details);
+      inventory.appendChild(row);
+    });
+  } catch (error) {
+    count.textContent = "Unavailable";
+    count.style.color = "var(--rose)";
+    inventory.textContent = "Kubernetes node inventory unavailable.";
+    console.warn("Kubernetes node inventory check failed:", error);
+  }
+}
 
 // -------------------------------------------------------------------------- //
 // Futuristic Web Audio Synthesizer (Optional Non-intrusive FX)

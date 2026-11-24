@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from kubernetes import client
 
 from backend.models.workflow import WorkflowDefinition, StageDefinition, StageState, WorkflowState
 from backend.scheduler.dag_scheduler import DAGScheduler
@@ -48,9 +49,51 @@ def test_heterogeneous_node_types():
     assert affinity is not None
     assert affinity.node_affinity is not None
 
-    # Inventory
-    inventory = get_cluster_nodes_inventory()
-    assert len(inventory) >= 3
+    node = client.V1Node(
+        metadata=client.V1ObjectMeta(
+            name="worker-a",
+            labels={"node.kubernetes.io/instance-type": "c5.xlarge"}
+        ),
+        status=client.V1NodeStatus(
+            allocatable={"cpu": "2", "memory": "4Gi"},
+            conditions=[client.V1NodeCondition(type="Ready", status="True")]
+        )
+    )
+    pod = client.V1Pod(
+        metadata=client.V1ObjectMeta(
+            name="cloudpilot-job",
+            labels={"app": "cloudpilot", "cloudpilot/stage": "analysis"}
+        ),
+        spec=client.V1PodSpec(
+            node_name="worker-a",
+            containers=[
+                client.V1Container(
+                    name="work",
+                    resources=client.V1ResourceRequirements(
+                        requests={"cpu": "500m", "memory": "1Gi"}
+                    )
+                )
+            ]
+        ),
+        status=client.V1PodStatus(phase="Running")
+    )
+    core = MagicMock()
+    core.list_node.return_value.items = [node]
+    core.list_namespaced_pod.return_value.items = [pod]
+    with patch("backend.k8s.node_types.get_core_client", return_value=core):
+        inventory = get_cluster_nodes_inventory()
+
+    assert len(inventory) == 1
+    assert inventory[0]["name"] == "worker-a"
+    assert inventory[0]["status"] == "Ready"
+    assert inventory[0]["cpu_allocated_cores"] == 0.5
+    assert inventory[0]["cpu_utilization_pct"] is None
+    assert inventory[0]["cpu_requested_pct"] == 25.0
+    assert inventory[0]["memory_allocated_mb"] == 1024.0
+    assert inventory[0]["memory_utilization_pct"] is None
+    assert inventory[0]["memory_requested_pct"] == 25.0
+    assert inventory[0]["assigned_stages"] == ["analysis"]
+    assert inventory[0]["autoscaler_state"] == "NOT_CONFIGURED"
 
 def test_self_healing_retry_on_failure():
     wf = WorkflowDefinition(

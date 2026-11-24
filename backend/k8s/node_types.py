@@ -13,6 +13,9 @@ Supports:
 
 from typing import Dict, Any, List, Optional
 from kubernetes import client
+from kubernetes.utils.quantity import parse_quantity
+from backend.config import NAMESPACE
+from backend.k8s.client import get_core_client
 
 CLOUD_INSTANCE_TYPES = {
     "c5.xlarge": {
@@ -51,7 +54,7 @@ def determine_optimal_node_type(stage_type: str, predicted_mem_mb: float = 0.0) 
 
 def build_node_affinity(node_type: str) -> Optional[client.V1Affinity]:
     """Build Kubernetes node affinity matching the recommended instance type."""
-    instance_info = CLUSTER_NODES_SPEC = CLOUD_INSTANCE_TYPES.get(node_type)
+    instance_info = CLOUD_INSTANCE_TYPES.get(node_type)
     if not instance_info:
         return None
         
@@ -78,69 +81,65 @@ def build_node_affinity(node_type: str) -> Optional[client.V1Affinity]:
     return client.V1Affinity(node_affinity=node_affinity)
 
 def get_cluster_nodes_inventory(active_stages: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
-    """Return live or simulated inventory of heterogeneous cloud nodes with Karpenter-style bin-packing."""
-    active_stages = active_stages or []
-    
-    # Track assigned stages per node
-    c5_stages = [s["stage_id"] for s in active_stages if s.get("node_type") == "c5.xlarge"]
-    r5_stages = [s["stage_id"] for s in active_stages if s.get("node_type") == "r5.xlarge"]
+    """Return actual node capacity and CloudPilot pod requests from Kubernetes."""
+    core = get_core_client()
+    nodes = core.list_node(_request_timeout=5).items
+    pods = core.list_namespaced_pod(
+        namespace=NAMESPACE,
+        label_selector="app=cloudpilot",
+        _request_timeout=5
+    ).items
 
-    if not active_stages:
-        c5_stages = ["vcf_stats", "analysis"]
-        r5_stages = ["variant_processing", "filtering"]
+    pods_by_node = {}
+    for pod in pods:
+        node_name = pod.spec.node_name
+        if not node_name or pod.status.phase in ("Succeeded", "Failed"):
+            continue
+        pods_by_node.setdefault(node_name, []).append(pod)
 
-    c5_cpu_used = round(len(c5_stages) * 0.618, 2)
-    c5_mem_used = round(len(c5_stages) * 121.0, 1)
-    r5_cpu_used = round(len(r5_stages) * 0.88, 2)
-    r5_mem_used = round(len(r5_stages) * 180.0, 1)
+    inventory = []
+    for node in nodes:
+        labels = node.metadata.labels or {}
+        instance_type = labels.get("node.kubernetes.io/instance-type", "unknown")
+        instance_info = CLOUD_INSTANCE_TYPES.get(instance_type, {})
+        allocatable = node.status.allocatable or {}
+        cpu_capacity = float(parse_quantity(allocatable.get("cpu", "0")))
+        memory_capacity = float(parse_quantity(allocatable.get("memory", "0"))) / (1024 ** 3)
+        node_pods = pods_by_node.get(node.metadata.name, [])
+        cpu_requested = 0.0
+        memory_requested_mb = 0.0
+        stages = []
 
-    return [
-        {
-            "name": "kind-worker-compute-1",
-            "instance_type": "c5.xlarge",
-            "family": "compute-optimized",
-            "vcpus": 4,
-            "memory_gib": 8,
-            "lifecycle": "spot",
-            "status": "Ready",
-            "autoscaler_state": "ACTIVE_PACKED",
-            "cpu_allocated_cores": c5_cpu_used,
-            "cpu_utilization_pct": round((c5_cpu_used / 4.0) * 100.0, 1),
-            "memory_allocated_mb": c5_mem_used,
-            "memory_utilization_pct": round((c5_mem_used / 8192.0) * 100.0, 1),
-            "packed_pod_count": len(c5_stages),
-            "assigned_stages": c5_stages
-        },
-        {
-            "name": "kind-worker-memory-2",
-            "instance_type": "r5.xlarge",
-            "family": "memory-optimized",
-            "vcpus": 4,
-            "memory_gib": 32,
-            "lifecycle": "on-demand",
-            "status": "Ready",
-            "autoscaler_state": "ACTIVE_PACKED",
-            "cpu_allocated_cores": r5_cpu_used,
-            "cpu_utilization_pct": round((r5_cpu_used / 4.0) * 100.0, 1),
-            "memory_allocated_mb": r5_mem_used,
-            "memory_utilization_pct": round((r5_mem_used / 32768.0) * 100.0, 1),
-            "packed_pod_count": len(r5_stages),
-            "assigned_stages": r5_stages
-        },
-        {
-            "name": "kind-control-plane",
-            "instance_type": "t3.medium",
-            "family": "general-purpose",
-            "vcpus": 2,
-            "memory_gib": 4,
-            "lifecycle": "on-demand",
-            "status": "Ready",
-            "autoscaler_state": "SYSTEM_RUNNING",
-            "cpu_allocated_cores": 0.45,
-            "cpu_utilization_pct": 22.5,
-            "memory_allocated_mb": 1024.0,
-            "memory_utilization_pct": 25.0,
-            "packed_pod_count": 2,
-            "assigned_stages": ["control-plane", "api-server"]
-        }
-    ]
+        for pod in node_pods:
+            for container in pod.spec.containers:
+                requests = (container.resources.requests or {}) if container.resources else {}
+                cpu_requested += float(parse_quantity(requests.get("cpu", "0")))
+                memory_requested_mb += float(parse_quantity(requests.get("memory", "0"))) / (1024 ** 2)
+            stage = (pod.metadata.labels or {}).get("cloudpilot/stage")
+            if stage:
+                stages.append(stage)
+
+        ready = any(
+            condition.type == "Ready" and condition.status == "True"
+            for condition in (node.status.conditions or [])
+        )
+        inventory.append({
+            "name": node.metadata.name,
+            "instance_type": instance_type,
+            "family": instance_info.get("family", "unknown"),
+            "vcpus": cpu_capacity,
+            "memory_gib": round(memory_capacity, 2),
+            "lifecycle": labels.get("node.kubernetes.io/lifecycle", "unknown"),
+            "status": "Ready" if ready else "NotReady",
+            "autoscaler_state": "NOT_CONFIGURED",
+            "cpu_allocated_cores": round(cpu_requested, 3),
+            "cpu_utilization_pct": None,
+            "cpu_requested_pct": round(cpu_requested / cpu_capacity * 100, 1) if cpu_capacity else 0.0,
+            "memory_allocated_mb": round(memory_requested_mb, 1),
+            "memory_utilization_pct": None,
+            "memory_requested_pct": round(memory_requested_mb / (memory_capacity * 1024) * 100, 1) if memory_capacity else 0.0,
+            "resource_metric_type": "pod_requests",
+            "packed_pod_count": len(node_pods),
+            "assigned_stages": stages
+        })
+    return inventory

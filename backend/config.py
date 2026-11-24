@@ -4,5 +4,5 @@ NAMESPACE = "cloudpilot"
 WORKLOAD_IMAGE = "cloudpilot-workload:latest"
 POLL_INTERVAL = 5  # seconds between status checks
 JOB_PREFIX = "cloudpilot"
-API_HOST = "0.0.0.0"
+API_HOST = "127.0.0.1"
 API_PORT = 8000

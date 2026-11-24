@@ -8,8 +8,7 @@ from backend.models.workflow import StageDefinition
 @pytest.fixture
 def mock_k8s():
     with patch("backend.k8s.job_manager.get_batch_client") as mock_batch, \
-         patch("backend.k8s.job_manager.get_core_client") as mock_core, \
-         patch("backend.k8s.job_manager.ensure_namespace") as mock_ns:
+         patch("backend.k8s.job_manager.get_core_client") as mock_core:
         batch_inst = MagicMock()
         core_inst = MagicMock()
         mock_batch.return_value = batch_inst
@@ -75,6 +74,45 @@ def test_job_manager_get_job_logs(mock_k8s):
     core_inst.list_namespaced_pod.return_value.items = []
     logs = manager.get_job_logs("test-job-no-pod")
     assert "No pods found" in logs
+
+def test_job_manager_get_job_pod_status(mock_k8s):
+    _, core_inst = mock_k8s
+    pod = MagicMock()
+    pod.metadata.name = "test-pod"
+    pod.status.phase = "Running"
+    pod.status.reason = None
+    pod.status.message = None
+    container_status = MagicMock()
+    container_status.name = "worker"
+    container_status.ready = True
+    container_status.restart_count = 0
+    container_status.state.running = object()
+    container_status.state.terminated = None
+    container_status.state.waiting = None
+    pod.status.container_statuses = [container_status]
+    core_inst.list_namespaced_pod.return_value.items = [pod]
+
+    status = JobManager().get_job_pod_status("test-job")
+
+    assert status == [{
+        "name": "test-pod",
+        "phase": "Running",
+        "reason": None,
+        "message": None,
+        "containers": [{
+            "name": "worker",
+            "ready": True,
+            "restart_count": 0,
+            "state": "running"
+        }]
+    }]
+
+def test_job_manager_surfaces_log_permission_errors(mock_k8s):
+    _, core_inst = mock_k8s
+    core_inst.list_namespaced_pod.side_effect = ApiException(status=403, reason="Forbidden")
+
+    with pytest.raises(ApiException):
+        JobManager().get_job_logs("test-job")
 
 def test_job_manager_delete_job(mock_k8s):
     batch_inst, _ = mock_k8s

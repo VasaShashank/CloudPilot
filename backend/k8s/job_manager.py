@@ -2,7 +2,7 @@ import logging
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 from backend.config import NAMESPACE
-from backend.k8s.client import get_batch_client, get_core_client, ensure_namespace
+from backend.k8s.client import get_batch_client, get_core_client
 
 logger = logging.getLogger('cloudpilot')
 
@@ -10,7 +10,6 @@ class JobManager:
     def __init__(self):
         self.batch_client = get_batch_client()
         self.core_client = get_core_client()
-        ensure_namespace()
 
     def create_job(self, job: client.V1Job) -> str:
         try:
@@ -54,7 +53,39 @@ class JobManager:
             return logs
         except ApiException as e:
             logger.error(f"Error getting logs for job {job_name}: {e}")
-            return f"Error getting logs: {str(e)}"
+            raise
+
+    def get_job_pod_status(self, job_name: str) -> list:
+        try:
+            pods = self.core_client.list_namespaced_pod(
+                namespace=NAMESPACE,
+                label_selector=f"job-name={job_name}"
+            )
+            return [
+                {
+                    "name": pod.metadata.name,
+                    "phase": pod.status.phase,
+                    "reason": pod.status.reason,
+                    "message": pod.status.message,
+                    "containers": [
+                        {
+                            "name": status.name,
+                            "ready": status.ready,
+                            "restart_count": status.restart_count,
+                            "state": (
+                                "running" if status.state.running else
+                                "terminated" if status.state.terminated else
+                                "waiting" if status.state.waiting else None
+                            )
+                        }
+                        for status in (pod.status.container_statuses or [])
+                    ]
+                }
+                for pod in pods.items
+            ]
+        except ApiException as e:
+            logger.error(f"Error getting pod status for job {job_name}: {e}")
+            raise
 
     def delete_job(self, job_name: str, propagation_policy: str = 'Background'):
         try:

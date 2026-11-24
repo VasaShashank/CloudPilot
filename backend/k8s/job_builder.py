@@ -52,7 +52,8 @@ def build_job(workflow_id: str, stage: StageDefinition, image: str = WORKLOAD_IM
     
     pod_kwargs = {
         "containers": [container],
-        "restart_policy": "Never"
+        "restart_policy": "Never",
+        "automount_service_account_token": False
     }
     if node_type:
         from backend.k8s.node_types import build_node_affinity

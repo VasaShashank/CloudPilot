@@ -16,6 +16,7 @@ def test_build_job_defaults():
     
     pod_spec = job.spec.template.spec
     assert pod_spec.restart_policy == "Never"
+    assert pod_spec.automount_service_account_token is False
     assert len(pod_spec.containers) == 1
     
     container = pod_spec.containers[0]

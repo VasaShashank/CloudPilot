@@ -6,16 +6,16 @@
 [![Kubernetes](https://img.shields.io/badge/kubernetes-kind%20%2F%20cloud-326ce5.svg)](https://kubernetes.io/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
 [![Cytoscape.js](https://img.shields.io/badge/DAG-Cytoscape.js-ff4081.svg)](https://js.cytoscape.org/)
-[![Tests](https://img.shields.io/badge/tests-104%20passed-10b981.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-116%20passed-10b981.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Zero Cloud Cost](https://img.shields.io/badge/Cost-%240.00%20Free-success.svg)](#-critical-question-do-we-need-to-use-a-paid-cloud)
+[![Local-first](https://img.shields.io/badge/Deployment-Local--first-success.svg)](#-critical-question-do-we-need-to-use-a-paid-cloud)
 
 ---
 
 > 📚 **Essential Project Documentation:**
 > - 🎓 **[PROJECT_LEARNING_GUIDE.md](PROJECT_LEARNING_GUIDE.md)**: Complete Master Learning Guide, 5-Phase Architecture, Truth Guide (real vs modeled), and Viva Interview Q&A.
 > - 🖥️ **[WEBSITE_OPERATION_GUIDE.md](WEBSITE_OPERATION_GUIDE.md)**: Visual Dashboard Navigation, HUD Gauges, Cytoscape Controls, and 5-Minute Live Demo Script.
-> - ☁️ **[AWS_FREE_TIER_DEPLOYMENT_GUIDE.md](AWS_FREE_TIER_DEPLOYMENT_GUIDE.md)**: Complete Zero-Cost AWS Deployment Guide (EC2, S3, CloudWatch, K3s) with real cloud metrics and a $0.00 bill.
+> - ☁️ **[AWS_K3S_DEPLOYMENT_GUIDE.md](AWS_K3S_DEPLOYMENT_GUIDE.md)**: Cost-aware single-EC2 K3s deployment guide. AWS charges may apply.
 
 ---
 
@@ -44,9 +44,9 @@ One of the greatest architectural strengths of CloudPilot is that **it does not 
 ### Why and How It Runs 100% Locally:
 - **Local Kubernetes (`kind`):** CloudPilot runs on `kind` (Kubernetes in Docker), Minikube, or k3s directly on your local machine (Windows with Docker Desktop / WSL2, Linux, or macOS).
 - **Embedded Genomic Data:** The platform uses real 1000 Genomes Phase 3 chromosome 22 VCF data (`data/genomic/raw/` and `data/genomic/chunks/`) processed by real containerized `bcftools` and `tabix` utilities.
-- **Zero Cloud Cost:** You can develop, test, train ML models, orchestrate workflows, and run full platform benchmarks with **$0 cloud expenditure**.
+- **Local Development:** You can develop, test, train ML models, and orchestrate workloads locally without creating cloud resources; AWS hosting incurs charges.
 - **Privacy & Security:** Genomic data remains completely on-premise without transferring sensitive patient or population genomes across external networks.
-- **Seamless Cloud Portability:** Because CloudPilot uses standard Kubernetes API primitives (`batch/v1` Jobs, resource requests/limits, cgroup telemetry), the exact same code and manifests can be pointed to an AWS EKS, GCP GKE, or Azure AKS cluster by simply updating your `KUBECONFIG` environment variable.
+- **Kubernetes Portability:** CloudPilot uses standard Kubernetes APIs (`batch/v1` Jobs). A local process can use a configured `KUBECONFIG`; an in-cluster deployment uses its service account and needs the included RBAC manifests. See the [deployment guide](AWS_K3S_DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -109,7 +109,7 @@ One of the greatest architectural strengths of CloudPilot is that **it does not 
 | **2** | **Genomic Profiling & Schema** | 1000 Genomes Phase 3 chr22 dataset (196 MB raw), 9 regional/sample chunks (100 kb to 4 Mb; 100 to 2,504 samples), containerized `bcftools 1.21` + `tabix`, 20-column RFC schema, 98 clean execution records (`datasets/`). | ✅ **Verified** |
 | **3** | **Machine Learning Intelligence** | 15 trained models: Stage Mean/Median, Ridge, Random Forest, XGBoost (HPO tuned); ensemble variance confidence scoring; Mahalanobis distance distribution-shift detector (`backend/prediction/`, `models/`). | ✅ **Verified** |
 | **4** | **Decision Engine & Dynamic Sizing** | 3-tier resource sizing engine, dynamic headroom injection, K8s hard memory limits, SLA critical-path deadline pressure scaling (`backend/decision/`). | ✅ **Verified** |
-| **5** | **Dashboard & Evaluation Suite** | FastAPI web server, Cytoscape.js interactive DAG UI, stage intelligence inspector, live pod log streaming, 3-way quantitative benchmarking suite, 104 passing tests (`backend/static/`, `scripts/evaluate_platform.py`). | ✅ **Verified** |
+| **5** | **Dashboard & Evaluation Suite** | FastAPI web server, Cytoscape.js interactive DAG UI, stage intelligence inspector, live pod log streaming, 3-way quantitative benchmarking suite, 116 passing tests (`backend/static/`, `scripts/evaluate_platform.py`). | ✅ **Verified** |
 | **Cloud** | **Cloud Architecture Extensions** | Autonomous Self-Healing on OOM/eviction, Predictive Vertical Autoscaling, Heterogeneous Multi-Node Scheduling (`c5.xlarge`/`r5.xlarge`), AWS FinOps Dollar Billing Engine, Real-Time Carbon Footprint Model, S3 Object Storage Emulator, and Prometheus `/metrics` exposition. | ✅ **Verified** |
 
 ---
@@ -144,7 +144,7 @@ The Mission Control workspace is organized into **three interactive columns**:
 │ • Live Manifest Editor    │ • Floating Control Dock           │ • Phase 4 Sizing Manifest │
 │ • "Initiate Orchestration"│ • Zoom / Fit / Auto-Layout        │ • Headroom Visual Stack   │
 │ • Chaos Monkey Fault Inject│ • Real-Time Polling Sync (2s)    │ • Live Pod Log Stream     │
-│ • Cluster Bin-Packing     │                                   │                           │
+│ • Live Kubernetes Nodes   │                                   │                           │
 │ • Mission History Feed    │                                   │                           │
 └───────────────────────────┴───────────────────────────────────┴───────────────────────────┘
 ```
@@ -337,11 +337,11 @@ Outputs are automatically written to `datasets/platform_evaluation_results.json`
 ---
 
 ### 6. Run the Full Test Suite
-Execute all 104 automated unit and integration tests:
+Execute all 116 automated unit and integration tests:
 ```bash
 pytest
 ```
-*Expected result:* **`104 passed in ~50s`** (100% pass rate).
+*Expected result:* **`116 passed`** (100% pass rate).
 
 ---
 

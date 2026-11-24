@@ -1,5 +1,6 @@
-# ☁️ CloudPilot Apex: Zero-Cost AWS Cloud Deployment Guide
-### Complete Manual for Deploying on Real AWS (EC2, S3, CloudWatch, K3s) with Real Metrics, FinOps Cost Tracking, and a $0.00 Monthly Cloud Bill
+# Legacy AWS guide (superseded)
+
+> **Do not follow this guide as a promise of free hosting or as a public deployment recipe.** Its free-tier, public HTTP, S3, and CloudWatch claims are not verified and may be inaccurate or insecure. Use the current [cost-aware single-EC2 K3s guide](AWS_K3S_DEPLOYMENT_GUIDE.md) instead. No AWS resources have been created.
 
 ---
 

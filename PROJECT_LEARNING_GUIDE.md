@@ -200,7 +200,7 @@ When you open `http://localhost:8000` (or `http://localhost:8000/dashboard`), yo
    - **Tab 1: Live Orchestrator (Mission Control):** For launching and visualizing live DAG workflows.
    - **Tab 2: 3-Way Empirical Benchmark:** For seeing quantitative proof of savings vs static baselines.
 3. **Telemetry Status Chips:**
-   - `kind-cluster: Online (1.31)`: Cluster heartbeat.
+   - `Kubernetes: Connected (N/N nodes)`: Green only after the backend successfully queries Kubernetes; unavailable or degraded states are shown when connectivity or node readiness is missing.
    - `ML Engine: Armed (96.8% cert)`: Predictor loaded.
    - `Audio FX Toggle`: Cyberpunk sound effects for workflow launches, completions, and clicks.
 
@@ -312,7 +312,7 @@ The platform includes **6 production cloud architectural extensions** designed t
 ## 9. Viva / Interview Q&A (How to Answer Tough Questions)
 
 ### Q1: Is this just a cloud simulation? Do we have to deploy this to a paid cloud (AWS/GCP)?
-> **Answer:** *"CloudPilot is a true cloud-native orchestrator built on standard Kubernetes API primitives (`batch/v1` Jobs, cgroups, node affinity, resource limits). It runs on `kind` (Kubernetes in Docker) to provide a 100% reproducible, zero-cost cloud emulation on any laptop. However, because it uses standard Kubernetes APIs, the exact same code can be pointed to an AWS EKS or GCP GKE cluster simply by changing the `KUBECONFIG` environment variable—no code changes required."*
+> **Answer:** *"CloudPilot uses standard Kubernetes API primitives (`batch/v1` Jobs, node affinity, and resource limits). Local development can use kind without cloud charges. An in-cluster deployment uses a scoped service account and RBAC; a process outside the cluster needs a valid `KUBECONFIG`. AWS infrastructure is not free by default, so check current pricing before deployment."*
 
 ### Q2: Does CloudPilot support Self-Healing, Autoscaling, and Migration?
 > **Answer:** *"Yes, across all three dimensions:

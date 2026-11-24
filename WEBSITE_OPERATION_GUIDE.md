@@ -20,7 +20,7 @@
 
 ## 1. Quickstart: How to Launch the Website
 
-You can launch the dashboard locally on your machine with **$0 cloud cost** and **no external dependencies**.
+You can launch the dashboard locally without provisioning AWS resources. Dashboard assets include CDN-loaded libraries and therefore need browser network access.
 
 ### Step 1: Open Terminal and Activate Environment
 ```bash
@@ -43,12 +43,17 @@ You will see:
 INFO:     Started server process
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
 ### Step 3: Open in Any Modern Browser
 Open Google Chrome, Brave, Edge, or Firefox and go to:
 👉 **`http://localhost:8000/`** or **`http://localhost:8000/dashboard`**
+
+For a new Docker container (when the container name and host port are available), publish the unauthenticated dashboard only on loopback:
+```powershell
+docker run -d --name cloudpilot-container -p 127.0.0.1:8000:8000 cloudpilot:latest
+```
 
 ---
 
@@ -86,7 +91,7 @@ The CloudPilot Apex interface is built with an aerospace-grade **glassmorphic da
    - **Live Orchestrator (Mission Control)**: Interactive DAG submission, execution, and inspection.
    - **3-Way Empirical Benchmark**: Quantitative comparison against static and unmanaged baselines.
 3. **Telemetry Status Chips**:
-   - `kind-cluster: Online (1.31)`: Green pulsing dot indicating Kubernetes cluster availability.
+   - `Kubernetes: Connected (N/N nodes)`: Green only after the backend successfully queries the cluster; degraded or unavailable states are shown when nodes are not ready or the API cannot be reached.
    - `ML Engine: Armed (96.8% cert)`: Cyan pulsing dot confirming Random Forest & XGBoost model readiness.
 4. **Futuristic Audio FX Toggle (Speaker Icon)**:
    - Click to toggle Web Audio API synthesized sci-fi sound effects (launch whoosh, node completion chime, warning klaxon, click clicks).
@@ -135,10 +140,9 @@ The CloudPilot Apex interface is built with an aerospace-grade **glassmorphic da
    - **⚡ Spot Preempt**: Simulates an AWS Spot 2-minute kill notice on a running stage; triggers self-healing pod migration.
    - **💥 OOMKill Surge**: Artificially exhausts container memory; tests autonomous Tier-3 Fallback escalation.
    - **Self-Healing Banner**: Displays the recovery action and recovery time in seconds (e.g., `Recovered in 2.1s`).
-7. **Cluster Bin-Packing Visualizer (Karpenter Style)**:
-   - Displays live resource packing across simulated nodes:
-     - `c5.xlarge (Spot)`: 42% CPU, 18% RAM (2 pods)
-     - `r5.xlarge (On-Demand)`: 58% CPU, 31% RAM (2 pods)
+7. **Kubernetes Node Requests**:
+   - Displays nodes and readiness from the live Kubernetes API, plus CloudPilot pod counts and scheduled CPU/memory requests as a percentage of allocatable capacity.
+   - Instance type/lifecycle values are Kubernetes labels; CPU/RAM request percentages are not live utilization or proof of EC2 billing.
 8. **Mission History Feed**:
    - Lists all previously submitted workflows with timestamp, state pill (`COMPLETED`, `RUNNING`, `FAILED`), and stage count.
 
